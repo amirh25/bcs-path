@@ -3,45 +3,39 @@
 import React, { useState, useEffect } from "react";
 import {
   BookOpen, CheckCircle2, Lock, Award, Sparkles,
-  AlertTriangle, PlusCircle, Edit3, Trash2, Eye,
-  Clock, Check, XCircle, ShieldCheck, KeyRound, UserCheck
+  AlertTriangle, PlusCircle, Edit3, Trash2,
+  Clock, ShieldCheck, KeyRound, UserCheck, RefreshCw
 } from "lucide-react";
 import { initialSubjects, initialLectures, initialQuestionBank } from "../data/bcsData";
 
 export default function BCSPathPlatform() {
-  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard | syllabus | notes | exam | qbank | admin
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [subjects] = useState(initialSubjects);
   const [lectures, setLectures] = useState(initialLectures);
   const [questionBank, setQuestionBank] = useState(initialQuestionBank);
+  const [paymentRequests, setPaymentRequests] = useState([]);
+  const [dbLoading, setDbLoading] = useState(true);
 
   const [activeSubjectId, setActiveSubjectId] = useState("bangladesh");
   const [activeLecture, setActiveLecture] = useState(initialLectures[0]);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [userPhone, setUserPhone] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [screenshotGuard, setScreenshotGuard] = useState(false);
 
-  // User & Payment Management States
-  const [paymentRequests, setPaymentRequests] = useState([
-    { id: "pay-1", name: "রাকিব হাসান", phone: "01712345678", method: "বিকাশ", trxId: "BK98234X", status: "Pending", date: "আজ" }
-  ]);
   const [payForm, setPayForm] = useState({ name: "", phone: "", method: "বিকাশ", trxId: "" });
 
-  // Admin Authentication State
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [adminPinInput, setAdminPinInput] = useState("");
-  const ADMIN_SECRET_PIN = "bcs2026"; // তোমার গোপন অ্যাডমিন পাসওয়ার্ড
 
-  // Live Mock Test States (0.5 Negative Marking)
   const [examAnswers, setExamAnswers] = useState({});
   const [examSubmitted, setExamSubmitted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(600);
 
-  // Question Bank Filter States
   const [selectedBatch, setSelectedBatch] = useState("ALL");
   const [selectedQbSubject, setSelectedQbSubject] = useState("ALL");
   const [revealedAnswers, setRevealedAnswers] = useState({});
 
-  // Admin Lecture Form State
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     subjectId: "bangladesh",
@@ -54,7 +48,6 @@ export default function BCSPathPlatform() {
     previousQuestion: "",
   });
 
-  // Admin New Question Form State
   const [newQuestion, setNewQuestion] = useState({
     bcsBatch: "৪৬তম বিসিএস",
     subjectId: "bangladesh",
@@ -67,20 +60,34 @@ export default function BCSPathPlatform() {
     explanation: "",
   });
 
-  // Load saved data from localStorage
-  useEffect(() => {
-    const savedLec = localStorage.getItem("bcs_path_lectures");
-    if (savedLec) {
-      const parsed = JSON.parse(savedLec);
-      setLectures(parsed);
-      setActiveLecture(parsed[0]);
+  // Fetch Live Data from MongoDB Atlas
+  const fetchCloudData = async () => {
+    setDbLoading(true);
+    try {
+      const res = await fetch("/api/platform");
+      const data = await res.json();
+      if (data.success) {
+        setLectures(data.lectures);
+        if (data.lectures.length > 0) setActiveLecture(data.lectures[0]);
+        setQuestionBank(data.questions);
+        setPaymentRequests(data.payments);
+
+        const savedPhone = localStorage.getItem("bcs_user_phone");
+        if (savedPhone) {
+          setUserPhone(savedPhone);
+          const approved = data.payments.some((p) => p.phone === savedPhone && p.status === "Approved");
+          if (approved) setIsSubscribed(true);
+        }
+      }
+    } catch (err) {
+      console.error("Database fetch error:", err);
+    } finally {
+      setDbLoading(false);
     }
-    const savedQb = localStorage.getItem("bcs_path_qbank");
-    if (savedQb) setQuestionBank(JSON.parse(savedQb));
+  };
 
-    const savedPay = localStorage.getItem("bcs_path_payments");
-    if (savedPay) setPaymentRequests(JSON.parse(savedPay));
-
+  useEffect(() => {
+    fetchCloudData();
     const savedSub = localStorage.getItem("bcs_path_subscribed");
     if (savedSub === "true") setIsSubscribed(true);
   }, []);
@@ -101,7 +108,7 @@ export default function BCSPathPlatform() {
     return () => clearInterval(timer);
   }, [activeTab, examSubmitted]);
 
-  // Anti-Piracy Security (Block Copy, Right Click & Window Blur)
+  // Anti-Piracy Security
   useEffect(() => {
     const handleContextMenu = (e) => {
       if (activeTab !== "admin") {
@@ -115,38 +122,14 @@ export default function BCSPathPlatform() {
         alert("⚠️ সিকিউরিটি প্রোটেকশন চালু আছে। শর্টকাট ব্যবহার করা যাবে না।");
       }
     };
-    const handleVisibilityChange = () => {
-      if (document.hidden && activeTab === "notes") {
-        setScreenshotGuard(true);
-      }
-    };
     window.addEventListener("contextmenu", handleContextMenu);
     window.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.removeEventListener("contextmenu", handleContextMenu);
       window.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [activeTab]);
 
-  // Helper functions to save state
-  const saveLecturesToStorage = (updated) => {
-    setLectures(updated);
-    localStorage.setItem("bcs_path_lectures", JSON.stringify(updated));
-  };
-
-  const saveQbToStorage = (updated) => {
-    setQuestionBank(updated);
-    localStorage.setItem("bcs_path_qbank", JSON.stringify(updated));
-  };
-
-  const savePaymentsToStorage = (updated) => {
-    setPaymentRequests(updated);
-    localStorage.setItem("bcs_path_payments", JSON.stringify(updated));
-  };
-
-  // Start Live Exam
   const startLiveExam = () => {
     setExamAnswers({});
     setExamSubmitted(false);
@@ -154,99 +137,116 @@ export default function BCSPathPlatform() {
     setActiveTab("exam");
   };
 
-  // Calculate Exam Score with 0.5 Negative Marking
   const calculateExamResult = () => {
     let correct = 0;
     let wrong = 0;
     questionBank.forEach((q) => {
-      if (examAnswers[q.id] !== undefined) {
-        if (examAnswers[q.id] === q.correctAnswer) correct += 1;
+      const qKey = q._id || q.id;
+      if (examAnswers[qKey] !== undefined) {
+        if (examAnswers[qKey] === q.correctAnswer) correct += 1;
         else wrong += 1;
       }
     });
     const negativePenalty = wrong * 0.5;
     const finalScore = Math.max(0, correct - negativePenalty);
-    return { correct, wrong, skipped: questionBank.length - (correct + wrong), negativePenalty, finalScore };
+    return { correct, wrong, negativePenalty, finalScore };
   };
 
-  // Submit Payment TrxID
-  const handlePaymentSubmit = (e) => {
+  // Cloud Payment Submit
+  const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     if (!payForm.phone || !payForm.trxId) {
       alert("অনুগ্রহ করে মোবাইল নম্বর এবং Transaction ID (TrxID) দিন!");
       return;
     }
-    const newReq = {
-      id: `pay-${Date.now()}`,
+    const payload = {
       name: payForm.name || "বিসিএস পরীক্ষার্থী",
       phone: payForm.phone,
       method: payForm.method,
       trxId: payForm.trxId.toUpperCase(),
-      status: "Pending",
-      date: new Date().toLocaleDateString("bn-BD"),
     };
-    savePaymentsToStorage([newReq, ...paymentRequests]);
-    setPayForm({ name: "", phone: "", method: "বিকাশ", trxId: "" });
-    setShowPaymentModal(false);
-    alert("✅ আপনার পেমেন্ট রিকোয়েস্ট জমা হয়েছে! অ্যাডমিন প্যানেল থেকে ভেরিফাই করলেই সব লেকচার আনলক হয়ে যাবে।");
+    const res = await fetch("/api/platform", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "SUBMIT_PAYMENT", payload }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem("bcs_user_phone", payForm.phone);
+      setUserPhone(payForm.phone);
+      setPayForm({ name: "", phone: "", method: "বিকাশ", trxId: "" });
+      setShowPaymentModal(false);
+      fetchCloudData();
+      alert("✅ আপনার পেমেন্ট রিকোয়েস্ট ক্লাউড ডাটাবেসে জমা হয়েছে! অ্যাডমিন অ্যাপ্রুভ করলেই আনলক হয়ে যাবে।");
+    }
   };
 
-  // Admin Approve Payment
-  const handleApprovePayment = (id) => {
-    const updated = paymentRequests.map((req) =>
-      req.id === id ? { ...req, status: "Approved" } : req
-    );
-    savePaymentsToStorage(updated);
-    setIsSubscribed(true);
-    localStorage.setItem("bcs_path_subscribed", "true");
-    alert("🎉 পেমেন্ট অ্যাপ্রুভ করা হয়েছে! ইউজারের ৬ মাসের সাবস্ক্রিপশন সক্রিয় হয়েছে।");
+  // Cloud Admin Approve Payment
+  const handleApprovePayment = async (id) => {
+    const res = await fetch("/api/platform", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "APPROVE_PAYMENT", adminPin: adminPinInput, payload: { id } }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setIsSubscribed(true);
+      localStorage.setItem("bcs_path_subscribed", "true");
+      fetchCloudData();
+      alert("🎉 পেমেন্ট অ্যাপ্রুভ করা হয়েছে! ইউজারের ৬ মাসের সাবস্ক্রিপশন সক্রিয় হয়েছে।");
+    } else {
+      alert(data.error);
+    }
   };
 
-  // Admin Lecture Upload / Update
-  const handleSaveLecture = (e) => {
+  // Cloud Admin Lecture Upload / Update
+  const handleSaveLecture = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.lectureNo) {
       alert("অনুগ্রহ করে লেকচার নম্বর এবং শিরোনাম দিন!");
       return;
     }
-    if (editingId) {
-      const updated = lectures.map((lec) =>
-        lec.id === editingId ? { ...lec, ...formData, lectureNo: Number(formData.lectureNo) } : lec
-      );
-      saveLecturesToStorage(updated);
-      alert("✅ লেকচার নোট সফলভাবে আপডেট হয়েছে!");
-      setEditingId(null);
-    } else {
-      const newLec = {
-        id: `lec-${Date.now()}`,
-        ...formData,
-        lectureNo: Number(formData.lectureNo),
-        completed: false,
-      };
-      saveLecturesToStorage([...lectures, newLec]);
-      alert("🎉 নতুন রঙিন লেকচার নোট সফলভাবে আপলোড হয়েছে!");
-    }
-    setFormData({
-      subjectId: "bangladesh",
-      lectureNo: "",
-      title: "",
-      isFree: false,
-      mainContent: "",
-      mnemonic: "",
-      confusionBox: "",
-      previousQuestion: "",
+    const payload = {
+      ...(editingId ? { _id: editingId } : {}),
+      ...formData,
+      lectureNo: Number(formData.lectureNo),
+    };
+    const res = await fetch("/api/platform", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "SAVE_LECTURE", adminPin: adminPinInput, payload }),
     });
+    const data = await res.json();
+    if (data.success) {
+      alert(editingId ? "✅ ক্লাউড ডাটাবেসে লেকচার আপডেট হয়েছে!" : "🎉 নতুন রঙিন লেকচার ক্লাউড ডাটাবেসে পাবলিশ হয়েছে!");
+      setEditingId(null);
+      setFormData({ subjectId: "bangladesh", lectureNo: "", title: "", isFree: false, mainContent: "", mnemonic: "", confusionBox: "", previousQuestion: "" });
+      fetchCloudData();
+    } else {
+      alert(data.error);
+    }
   };
 
-  // Admin Add Question to Question Bank
-  const handleAddQuestion = (e) => {
+  // Cloud Admin Delete Lecture
+  const handleDeleteLecture = async (id) => {
+    if (!confirm("আপনি কি নিশ্চিতভাবে এই লেকচারটি ডিলিট করতে চান?")) return;
+    const res = await fetch("/api/platform", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "DELETE_LECTURE", adminPin: adminPinInput, payload: { id } }),
+    });
+    const data = await res.json();
+    if (data.success) fetchCloudData();
+  };
+
+  // Cloud Admin Add Question
+  const handleAddQuestion = async (e) => {
     e.preventDefault();
     if (!newQuestion.question || !newQuestion.opt0 || !newQuestion.opt1) {
       alert("প্রশ্ন এবং অপশনগুলো সঠিকভাবে পূরণ করুন!");
       return;
     }
-    const qObj = {
-      id: `qb-${Date.now()}`,
+    const payload = {
       bcsBatch: newQuestion.bcsBatch,
       subjectId: newQuestion.subjectId,
       question: newQuestion.question,
@@ -254,13 +254,21 @@ export default function BCSPathPlatform() {
       correctAnswer: Number(newQuestion.correctAnswer),
       explanation: newQuestion.explanation,
     };
-    saveQbToStorage([qObj, ...questionBank]);
-    setNewQuestion({ ...newQuestion, question: "", opt0: "", opt1: "", opt2: "", opt3: "", explanation: "" });
-    alert("✅ প্রশ্ন ব্যাংকে নতুন প্রশ্ন যুক্ত হয়েছে!");
+    const res = await fetch("/api/platform", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "ADD_QUESTION", adminPin: adminPinInput, payload }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setNewQuestion({ ...newQuestion, question: "", opt0: "", opt1: "", opt2: "", opt3: "", explanation: "" });
+      fetchCloudData();
+      alert("✅ ক্লাউড প্রশ্ন ব্যাংকে নতুন প্রশ্ন যুক্ত হয়েছে!");
+    }
   };
 
   const handleEditClick = (lec) => {
-    setEditingId(lec.id);
+    setEditingId(lec._id || lec.id);
     setFormData({
       subjectId: lec.subjectId,
       lectureNo: lec.lectureNo,
@@ -272,12 +280,6 @@ export default function BCSPathPlatform() {
       previousQuestion: lec.previousQuestion || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleDeleteLecture = (id) => {
-    if (confirm("আপনি কি নিশ্চিতভাবে এই লেকচারটি ডিলিট করতে চান?")) {
-      saveLecturesToStorage(lectures.filter((l) => l.id !== id));
-    }
   };
 
   const currentSubject = subjects.find((s) => s.id === activeSubjectId) || subjects[0];
@@ -306,7 +308,9 @@ export default function BCSPathPlatform() {
             <div className="w-9 h-9 bg-black text-white rounded-lg flex items-center justify-center font-bold text-lg">ব</div>
             <div>
               <h1 className="font-bold text-lg leading-tight">বিসিএস পাঠ</h1>
-              <p className="text-[11px] text-gray-500">সিলেবাস-সাজানো প্রস্তুতি</p>
+              <p className="text-[11px] text-emerald-600 font-semibold">
+                {dbLoading ? "ক্লাউড সিঙ্ক হচ্ছে..." : "● ক্লাউড ডাটাবেস সংযুক্ত"}
+              </p>
             </div>
           </div>
 
@@ -431,7 +435,7 @@ export default function BCSPathPlatform() {
                         const isLocked = !lec.isFree && !isSubscribed;
                         return (
                           <div
-                            key={lec.id}
+                            key={lec._id || lec.id}
                             onClick={() => {
                               if (isLocked) setShowPaymentModal(true);
                               else { setActiveLecture(lec); setActiveTab("notes"); }
@@ -495,7 +499,7 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 2. SYLLABUS (PRELI + WRITTEN) TAB ================= */}
+        {/* ================= 2. SYLLABUS TAB ================= */}
         {activeTab === "syllabus" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl border shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -549,11 +553,10 @@ export default function BCSPathPlatform() {
         {/* ================= 3. COLORFUL LECTURE READER TAB ================= */}
         {activeTab === "notes" && (
           <div className="bg-white rounded-2xl border shadow-xs p-6 sm:p-10 relative overflow-hidden">
-            {/* Dynamic Anti-Piracy Watermark */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.04] flex flex-wrap gap-24 items-center justify-center rotate-[-20deg] select-none text-2xl font-black">
-              <span>USER-2481 · BCS-PATH · DO NOT COPY</span>
-              <span>USER-2481 · BCS-PATH · DO NOT COPY</span>
-              <span>USER-2481 · BCS-PATH · DO NOT COPY</span>
+              <span>{userPhone || "USER-2481"} · BCS-PATH · DO NOT COPY</span>
+              <span>{userPhone || "USER-2481"} · BCS-PATH · DO NOT COPY</span>
+              <span>{userPhone || "USER-2481"} · BCS-PATH · DO NOT COPY</span>
             </div>
 
             <div className="flex flex-wrap justify-between items-center gap-4 mb-6 border-b pb-4">
@@ -565,14 +568,12 @@ export default function BCSPathPlatform() {
                   লেকচার {activeLecture?.lectureNo}: {activeLecture?.title}
                 </h2>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setScreenshotGuard(!screenshotGuard)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium ${screenshotGuard ? "bg-red-50 text-red-600 border-red-200" : "bg-gray-50 text-gray-600"}`}
-                >
-                  {screenshotGuard ? "গার্ড আনব্লার করুন" : "স্ক্রিনশট গার্ড (Blur)"}
-                </button>
-              </div>
+              <button
+                onClick={() => setScreenshotGuard(!screenshotGuard)}
+                className={`text-xs px-3 py-1.5 rounded-lg border font-medium ${screenshotGuard ? "bg-red-50 text-red-600 border-red-200" : "bg-gray-50 text-gray-600"}`}
+              >
+                {screenshotGuard ? "গার্ড আনব্লার করুন" : "স্ক্রিনশট গার্ড (Blur)"}
+              </button>
             </div>
 
             <div className={`space-y-6 transition duration-300 ${screenshotGuard ? "filter blur-lg select-none" : ""}`}>
@@ -612,7 +613,6 @@ export default function BCSPathPlatform() {
                 </div>
               )}
 
-              {/* End of Lecture Exam Trigger */}
               <div className="p-6 rounded-2xl bg-gray-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
                 <div>
                   <h4 className="font-bold text-base">এই লেকচারটি পড়া শেষ করেছেন?</h4>
@@ -684,9 +684,10 @@ export default function BCSPathPlatform() {
 
             <div className="space-y-4">
               {questionBank.map((q, idx) => {
-                const selectedOpt = examAnswers[q.id];
+                const qKey = q._id || q.id;
+                const selectedOpt = examAnswers[qKey];
                 return (
-                  <div key={q.id} className="bg-white p-6 rounded-2xl border shadow-xs">
+                  <div key={qKey} className="bg-white p-6 rounded-2xl border shadow-xs">
                     <h3 className="font-bold text-sm sm:text-base mb-4">
                       {idx + 1}. {q.question}
                     </h3>
@@ -703,7 +704,7 @@ export default function BCSPathPlatform() {
                           <button
                             key={optIdx}
                             disabled={examSubmitted}
-                            onClick={() => setExamAnswers({ ...examAnswers, [q.id]: optIdx })}
+                            onClick={() => setExamAnswers({ ...examAnswers, [qKey]: optIdx })}
                             className={`p-3 rounded-xl border text-left text-xs transition ${style}`}
                           >
                             {String.fromCharCode(2453 + optIdx)}. {opt}
@@ -750,9 +751,10 @@ export default function BCSPathPlatform() {
 
             <div className="space-y-4">
               {filteredQuestions.map((q, idx) => {
-                const isRevealed = revealedAnswers[q.id];
+                const qKey = q._id || q.id;
+                const isRevealed = revealedAnswers[qKey];
                 return (
-                  <div key={q.id} className="bg-white p-6 rounded-2xl border shadow-xs">
+                  <div key={qKey} className="bg-white p-6 rounded-2xl border shadow-xs">
                     <div className="flex justify-between items-start gap-4 mb-4">
                       <h3 className="font-bold text-sm sm:text-base">{idx + 1}. {q.question}</h3>
                       <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold whitespace-nowrap">{q.bcsBatch}</span>
@@ -763,7 +765,7 @@ export default function BCSPathPlatform() {
                         return (
                           <div
                             key={optIdx}
-                            onClick={() => setRevealedAnswers({ ...revealedAnswers, [q.id]: true })}
+                            onClick={() => setRevealedAnswers({ ...revealedAnswers, [qKey]: true })}
                             className={`p-3 rounded-xl border text-xs font-medium cursor-pointer transition ${
                               isRevealed ? (isCorrect ? "bg-emerald-50 border-emerald-400 text-emerald-900 font-bold" : "bg-gray-50 text-gray-500") : "hover:border-black"
                             }`}
@@ -773,7 +775,7 @@ export default function BCSPathPlatform() {
                         );
                       })}
                     </div>
-                    <button onClick={() => setRevealedAnswers({ ...revealedAnswers, [q.id]: !isRevealed })} className="text-xs font-bold text-blue-600 hover:underline">
+                    <button onClick={() => setRevealedAnswers({ ...revealedAnswers, [qKey]: !isRevealed })} className="text-xs font-bold text-blue-600 hover:underline">
                       {isRevealed ? "ব্যাখ্যা লুকান ▲" : "সঠিক উত্তর ও বিস্তারিত ব্যাখ্যা দেখুন ▼"}
                     </button>
                     {isRevealed && (
@@ -789,7 +791,7 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 6. PASSWORD-PROTECTED ADMIN CMS TAB ================= */}
+        {/* ================= 6. CLOUD ADMIN CMS TAB ================= */}
         {activeTab === "admin" && (
           <div>
             {!isAdminUnlocked ? (
@@ -798,7 +800,7 @@ export default function BCSPathPlatform() {
                   <KeyRound className="w-6 h-6" />
                 </div>
                 <h2 className="text-lg font-bold mb-1">অ্যাডমিন সিকিউরিটি লক</h2>
-                <p className="text-xs text-gray-500 mb-5">শুধুমাত্র অ্যাডমিন লেকচার নোট আপলোড ও পেমেন্ট অ্যাপ্রুভ করতে পারবেন। (ডেমো পিন: <code>bcs2026</code>)</p>
+                <p className="text-xs text-gray-500 mb-5">শুধুমাত্র অ্যাডমিন লেকচার নোট আপলোড ও পেমেন্ট অ্যাপ্রুভ করতে পারবেন। (পিন: <code>bcs2026</code>)</p>
                 <input
                   type="password"
                   placeholder="অ্যাডমিন পিন লিখুন (bcs2026)"
@@ -808,7 +810,7 @@ export default function BCSPathPlatform() {
                 />
                 <button
                   onClick={() => {
-                    if (adminPinInput === ADMIN_SECRET_PIN) setIsAdminUnlocked(true);
+                    if (adminPinInput === "bcs2026") setIsAdminUnlocked(true);
                     else alert("❌ ভুল পিন! সঠিক পিন দিন: bcs2026");
                   }}
                   className="w-full py-3 bg-black text-white rounded-xl text-xs font-bold hover:bg-gray-800"
@@ -818,17 +820,24 @@ export default function BCSPathPlatform() {
               </div>
             ) : (
               <div className="space-y-8">
-                {/* Section A: Pending bKash/Nagad Payment Verification */}
                 <div className="bg-white p-6 rounded-2xl border shadow-xs">
-                  <h3 className="font-bold text-base mb-1 flex items-center gap-2">
-                    <UserCheck className="w-5 h-5 text-emerald-600" /> স্টুডেন্ট সাবস্ক্রিপশন ও বিকাশ/নগদ পেমেন্ট ভেরিফিকেশন
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-4">স্টুডেন্টরা ২০০ টাকা পাঠিয়ে TrxID দিলে এখানে জমা হবে। আপনি মিলিয়ে Approve করলেই তার একাউন্ট আনলক হবে।</p>
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="font-bold text-base flex items-center gap-2">
+                        <UserCheck className="w-5 h-5 text-emerald-600" /> স্টুডেন্ট সাবস্ক্রিপশন ও বিকাশ/নগদ পেমেন্ট ভেরিফিকেশন
+                      </h3>
+                      <p className="text-xs text-gray-500">ক্লাউড ডাটাবেসে জমা হওয়া সকল পেমেন্ট রিকোয়েস্ট ({paymentRequests.length}টি)</p>
+                    </div>
+                    <button onClick={fetchCloudData} className="px-3 py-1.5 border rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-gray-50">
+                      <RefreshCw className="w-3.5 h-3.5" /> রিফ্রেশ
+                    </button>
+                  </div>
+
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="border-b bg-gray-50 text-gray-600">
-                          <th className="p-3">নাম ও তারিখ</th>
+                          <th className="p-3">নাম</th>
                           <th className="p-3">মোবাইল নম্বর</th>
                           <th className="p-3">মাধ্যম</th>
                           <th className="p-3">TrxID</th>
@@ -838,8 +847,8 @@ export default function BCSPathPlatform() {
                       </thead>
                       <tbody>
                         {paymentRequests.map((req) => (
-                          <tr key={req.id} className="border-b">
-                            <td className="p-3 font-semibold">{req.name} <span className="text-gray-400 block text-[10px]">{req.date}</span></td>
+                          <tr key={req._id || req.id} className="border-b">
+                            <td className="p-3 font-semibold">{req.name}</td>
                             <td className="p-3">{req.phone}</td>
                             <td className="p-3">{req.method}</td>
                             <td className="p-3 font-mono font-bold text-blue-700">{req.trxId}</td>
@@ -850,7 +859,7 @@ export default function BCSPathPlatform() {
                             </td>
                             <td className="p-3">
                               {req.status === "Pending" ? (
-                                <button onClick={() => handleApprovePayment(req.id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700">
+                                <button onClick={() => handleApprovePayment(req._id || req.id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700">
                                   Approve (Unlock)
                                 </button>
                               ) : (
@@ -864,11 +873,11 @@ export default function BCSPathPlatform() {
                   </div>
                 </div>
 
-                {/* Section B: Lecture Note Upload & Management */}
+                {/* Lecture Upload Form */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2 bg-white p-6 rounded-2xl border shadow-xs">
                     <h2 className="text-lg font-bold mb-1">
-                      {editingId ? "✏️ লেকচার নোট আপডেট করুন" : "➕ নতুন রঙিন লেকচার নোট আপলোড করুন"}
+                      {editingId ? "✏️ লেকচার নোট আপডেট করুন" : "➕ নতুন রঙিন লেকচার নোট আপলোড করুন (Cloud DB)"}
                     </h2>
                     <form onSubmit={handleSaveLecture} className="space-y-4 text-xs mt-4">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -918,18 +927,19 @@ export default function BCSPathPlatform() {
                       </div>
 
                       <button type="submit" className="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800">
-                        {editingId ? "আপডেট সেভ করুন" : "লেকচার নোট পাবলিশ করুন"}
+                        {editingId ? "ক্লাউডে আপডেট সেভ করুন" : "ক্লাউডে লেকচার পাবলিশ করুন"}
                       </button>
                     </form>
                   </div>
 
                   <div className="bg-white p-6 rounded-2xl border shadow-xs">
-                    <h3 className="font-bold text-base mb-4">আপলোডকৃত লেকচার ({lectures.length}টি)</h3>
+                    <h3 className="font-bold text-base mb-4">ক্লাউড লেকচার তালিকা ({lectures.length}টি)</h3>
                     <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                       {lectures.map((lec) => {
                         const subName = subjects.find((s) => s.id === lec.subjectId)?.title;
+                        const lKey = lec._id || lec.id;
                         return (
-                          <div key={lec.id} className="p-3.5 rounded-xl border bg-gray-50 flex flex-col gap-2">
+                          <div key={lKey} className="p-3.5 rounded-xl border bg-gray-50 flex flex-col gap-2">
                             <div className="flex justify-between">
                               <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{subName} · লেকচার {lec.lectureNo}</span>
                               <span className="text-[10px] font-bold">{lec.isFree ? "Free" : "Premium"}</span>
@@ -938,7 +948,7 @@ export default function BCSPathPlatform() {
                             <div className="flex gap-2 pt-1">
                               <button onClick={() => { setActiveLecture(lec); setActiveTab("notes"); }} className="flex-1 py-1.5 bg-white border rounded-lg text-[11px] font-semibold">দেখুন</button>
                               <button onClick={() => handleEditClick(lec)} className="flex-1 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-semibold">এডিট</button>
-                              <button onClick={() => handleDeleteLecture(lec.id)} className="p-1.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => handleDeleteLecture(lKey)} className="p-1.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
                           </div>
                         );
@@ -947,9 +957,9 @@ export default function BCSPathPlatform() {
                   </div>
                 </div>
 
-                {/* Section C: Question Bank Uploader */}
+                {/* Question Bank Uploader */}
                 <div className="bg-white p-6 rounded-2xl border shadow-xs">
-                  <h3 className="font-bold text-base mb-4">➕ প্রশ্ন ব্যাংক ও মক টেস্টে নতুন MCQ প্রশ্ন যোগ করুন</h3>
+                  <h3 className="font-bold text-base mb-4">➕ ক্লাউড প্রশ্ন ব্যাংক ও মক টেস্টে নতুন MCQ প্রশ্ন যোগ করুন</h3>
                   <form onSubmit={handleAddQuestion} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <input type="text" placeholder="প্রশ্নটি লিখুন..." value={newQuestion.question} onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })} className="sm:col-span-2 p-2.5 border rounded-xl" />
                     <input type="text" placeholder="অপশন ক" value={newQuestion.opt0} onChange={(e) => setNewQuestion({ ...newQuestion, opt0: e.target.value })} className="p-2.5 border rounded-xl" />
@@ -965,7 +975,7 @@ export default function BCSPathPlatform() {
                     <input type="text" placeholder="বিসিএস ব্যাচ (যেমন: ৪৬তম বিসিএস)" value={newQuestion.bcsBatch} onChange={(e) => setNewQuestion({ ...newQuestion, bcsBatch: e.target.value })} className="p-2.5 border rounded-xl" />
                     <textarea rows={2} placeholder="ব্যাখ্যা লিখুন..." value={newQuestion.explanation} onChange={(e) => setNewQuestion({ ...newQuestion, explanation: e.target.value })} className="sm:col-span-2 p-2.5 border rounded-xl" />
                     <button type="submit" className="sm:col-span-2 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">
-                      প্রশ্ন ব্যাংকে যোগ করুন
+                      ক্লাউড প্রশ্ন ব্যাংকে যোগ করুন
                     </button>
                   </form>
                 </div>
@@ -975,7 +985,7 @@ export default function BCSPathPlatform() {
         )}
       </main>
 
-      {/* Real Payment Submission Modal */}
+      {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full rounded-2xl p-6 shadow-2xl">
