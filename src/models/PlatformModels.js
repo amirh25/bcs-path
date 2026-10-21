@@ -4,22 +4,33 @@ const LectureSchema = new mongoose.Schema({
   subjectId: { type: String, required: true },
   lectureNo: { type: Number, required: true },
   title: { type: String, required: true },
-  isFree: { type: Boolean, default: false },
-  // 3-Tier PDF Support (Lecture PDF, Chapter MCQ PDF, Written Q&A PDF)
+  isFree: { type: Boolean, default: true },
+  // 3-Tier PDF Support
   lecturePdfUrl: { type: String, default: "" },
   mcqPdfUrl: { type: String, default: "" },
   writtenPdfUrl: { type: String, default: "" },
-  // Text fallback notes
+  // Rich Text View Support for Lecture, MCQ & Written
   mainContent: { type: String, default: "" },
   mnemonic: { type: String, default: "" },
   confusionBox: { type: String, default: "" },
-  previousQuestion: { type: String, default: "" },
+  mcqTextContent: { type: String, default: "" },
+  writtenTextContent: { type: String, default: "" },
+}, { timestamps: true });
+
+// নতুন: বিষয়ভিত্তিক প্রশ্নব্যাংক (PDF + Text View) মডেল
+const QuestionBankDocSchema = new mongoose.Schema({
+  subjectId: { type: String, required: true },
+  bcsBatch: { type: String, default: "১০ম - ৪৬তম বিসিএস" },
+  title: { type: String, required: true },
+  pdfUrl: { type: String, default: "" },
+  textContent: { type: String, default: "" },
+  highlightBox: { type: String, default: "" },
 }, { timestamps: true });
 
 const QuestionSchema = new mongoose.Schema({
   bcsBatch: { type: String, default: "অধ্যায়ভিত্তিক" },
   subjectId: { type: String, required: true },
-  lectureNo: { type: Number, default: 1 }, // নির্দিষ্ট লেকচার/অধ্যায়ের সাথে যুক্ত
+  lectureNo: { type: Number, default: 1 },
   question: { type: String, required: true },
   options: [{ type: String }],
   correctAnswer: { type: Number, required: true },
@@ -42,11 +53,10 @@ const StudentProfileSchema = new mongoose.Schema({
   institution: { type: String, default: "" },
   hideProfile: { type: Boolean, default: false },
   avatarUrl: { type: String, default: "" },
-  completedLectures: { type: Number, default: 34 },
-  completedQuizzes: { type: Number, default: 12 },
 }, { timestamps: true });
 
 export const Lecture = mongoose.models.Lecture || mongoose.model("Lecture", LectureSchema);
+export const QuestionBankDoc = mongoose.models.QuestionBankDoc || mongoose.model("QuestionBankDoc", QuestionBankDocSchema);
 export const Question = mongoose.models.Question || mongoose.model("Question", QuestionSchema);
 export const Payment = mongoose.models.Payment || mongoose.model("Payment", PaymentSchema);
 export const StudentProfile = mongoose.models.StudentProfile || mongoose.model("StudentProfile", StudentProfileSchema);
