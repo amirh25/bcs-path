@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { Lecture, Question, Payment } from "@/models/PlatformModels";
+import { Lecture, Question, Payment, StudentProfile } from "@/models/PlatformModels";
 import { initialLectures, initialQuestionBank } from "@/data/bcsData";
 
 export async function GET() {
@@ -11,12 +11,13 @@ export async function GET() {
     let questions = await Question.find().sort({ createdAt: -1 });
     const payments = await Payment.find().sort({ createdAt: -1 });
 
-    // ডাটাবেস একদম নতুন হলে ডেমো লেকচার ও প্রশ্ন ব্যাংক অটোমেটিক সেভ হবে
     if (lectures.length === 0) {
       lectures = await Lecture.insertMany(initialLectures.map(({ id, ...rest }) => rest));
     }
     if (questions.length === 0) {
-      questions = await Question.insertMany(initialQuestionBank.map(({ id, ...rest }) => rest));
+      questions = await Question.insertMany(
+        initialQuestionBank.map(({ id, ...rest }) => ({ ...rest, lectureNo: 1 }))
+      );
     }
 
     return NextResponse.json({ success: true, lectures, questions, payments });
@@ -31,11 +32,23 @@ export async function POST(req) {
     const body = await req.json();
     const { action, adminPin, payload } = body;
 
+    // স্টুডেন্ট পেমেন্ট সাবমিট
     if (action === "SUBMIT_PAYMENT") {
       const newPay = await Payment.create(payload);
       return NextResponse.json({ success: true, data: newPay });
     }
 
+    // স্টুডেন্ট প্রোফাইল সেভ
+    if (action === "SAVE_PROFILE") {
+      const profile = await StudentProfile.findOneAndUpdate(
+        { phone: payload.phone || "guest_student" },
+        payload,
+        { upsert: true, new: true }
+      );
+      return NextResponse.json({ success: true, data: profile });
+    }
+
+    // অ্যাডমিন পিন ভেরিফিকেশন
     const SECRET = process.env.ADMIN_SECRET_PIN || "bcs2026";
     if (adminPin !== SECRET) {
       return NextResponse.json({ success: false, error: "ভুল অ্যাডমিন পিন!" }, { status: 401 });
@@ -59,6 +72,12 @@ export async function POST(req) {
     if (action === "ADD_QUESTION") {
       const createdQ = await Question.create(payload);
       return NextResponse.json({ success: true, data: createdQ });
+    }
+
+    // এক ক্লিকে অসংখ্য MCQ প্রশ্ন আপলোড (Bulk Upload for Chapter Exam)
+    if (action === "BULK_ADD_QUESTIONS") {
+      const inserted = await Question.insertMany(payload.questions);
+      return NextResponse.json({ success: true, count: inserted.length });
     }
 
     if (action === "APPROVE_PAYMENT") {
