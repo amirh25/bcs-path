@@ -1,6 +1,16 @@
+/**
+ * ============================================================================
+ * FILE: src/app/api/platform/route.js
+ * PURPOSE: Central REST API for BCS Path & Defense/Police Foundation
+ * NOTE FOR DEVELOPERS:
+ *   - GET: Returns all lectures, qbankDocs, and questions from MongoDB Atlas.
+ *   - POST: Handles profile updates and Admin PIN-protected CRUD operations.
+ * ============================================================================
+ */
+
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { Lecture, QuestionBankDoc, Question, Payment, StudentProfile } from "@/models/PlatformModels";
+import { Lecture, QuestionBankDoc, Question, StudentProfile } from "@/models/PlatformModels";
 
 export async function GET() {
   try {
@@ -9,14 +19,14 @@ export async function GET() {
     const lectures = await Lecture.find().sort({ lectureNo: 1 });
     const qbankDocs = await QuestionBankDoc.find().sort({ createdAt: -1 });
     const questions = await Question.find().sort({ createdAt: -1 });
-    const payments = await Payment.find().sort({ createdAt: -1 });
+    const studentsCount = await StudentProfile.countDocuments();
 
     return NextResponse.json({
       success: true,
       lectures,
       qbankDocs,
       questions,
-      payments,
+      studentsCount: studentsCount || 1,
     });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -29,26 +39,23 @@ export async function POST(req) {
     const body = await req.json();
     const { action, adminPin, payload } = body;
 
-    if (action === "SUBMIT_PAYMENT") {
-      const newPay = await Payment.create(payload);
-      return NextResponse.json({ success: true, data: newPay });
-    }
-
+    // Public Student Action: Update Name & Profile
     if (action === "SAVE_PROFILE") {
       const profile = await StudentProfile.findOneAndUpdate(
-        { phone: payload.phone || "guest_student" },
+        { phone: payload.phone || "student_default" },
         payload,
         { upsert: true, new: true }
       );
       return NextResponse.json({ success: true, data: profile });
     }
 
+    // Security Gate: Verify Admin PIN for all CMS actions
     const SECRET = process.env.ADMIN_SECRET_PIN || "bcs2026";
     if (adminPin !== SECRET) {
       return NextResponse.json({ success: false, error: "ভুল অ্যাডমিন পিন!" }, { status: 401 });
     }
 
-    // Lecture Save / Update
+    // Create or Update Lecture (BCS or Defense/Police)
     if (action === "SAVE_LECTURE") {
       if (payload._id) {
         const updated = await Lecture.findByIdAndUpdate(payload._id, payload, { new: true });
@@ -64,7 +71,7 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // Question Bank Document (PDF + Text View) Save / Delete
+    // Create or Update Question Bank Document (PDF + Text)
     if (action === "SAVE_QBANK_DOC") {
       if (payload._id) {
         const updated = await QuestionBankDoc.findByIdAndUpdate(payload._id, payload, { new: true });
@@ -80,17 +87,13 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // Exam MCQ Add / Delete
+    // Add Single MCQ Question (BCS or Defense Topic Test)
     if (action === "ADD_QUESTION") {
       const createdQ = await Question.create(payload);
       return NextResponse.json({ success: true, data: createdQ });
     }
 
-    if (action === "DELETE_QUESTION") {
-      await Question.findByIdAndDelete(payload.id);
-      return NextResponse.json({ success: true });
-    }
-
+    // Bulk Upload MCQ Questions via JSON
     if (action === "BULK_ADD_QUESTIONS") {
       const inserted = await Question.insertMany(payload.questions);
       return NextResponse.json({ success: true, count: inserted.length });
