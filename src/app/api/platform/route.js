@@ -1,16 +1,13 @@
 /**
  * ============================================================================
  * FILE: src/app/api/platform/route.js
- * PURPOSE: Central REST API for BCS Path & Defense/Police Foundation
- * NOTE FOR DEVELOPERS:
- *   - GET: Returns all lectures, qbankDocs, and questions from MongoDB Atlas.
- *   - POST: Handles profile updates and Admin PIN-protected CRUD operations.
+ * PURPOSE: Central REST API for Lectures, Question Bank Docs, and 50-MCQ Exam Sets
  * ============================================================================
  */
 
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { Lecture, QuestionBankDoc, Question, StudentProfile } from "@/models/PlatformModels";
+import { Lecture, QuestionBankDoc, ExamSet, StudentProfile } from "@/models/PlatformModels";
 
 export async function GET() {
   try {
@@ -18,14 +15,14 @@ export async function GET() {
 
     const lectures = await Lecture.find().sort({ lectureNo: 1 });
     const qbankDocs = await QuestionBankDoc.find().sort({ createdAt: -1 });
-    const questions = await Question.find().sort({ createdAt: -1 });
+    const examSets = await ExamSet.find().sort({ lectureNo: 1, testNumber: 1 });
     const studentsCount = await StudentProfile.countDocuments();
 
     return NextResponse.json({
       success: true,
       lectures,
       qbankDocs,
-      questions,
+      examSets,
       studentsCount: studentsCount || 1,
     });
   } catch (error) {
@@ -39,7 +36,7 @@ export async function POST(req) {
     const body = await req.json();
     const { action, adminPin, payload } = body;
 
-    // Public Student Action: Update Name & Profile
+    // Student Profile Save
     if (action === "SAVE_PROFILE") {
       const profile = await StudentProfile.findOneAndUpdate(
         { phone: payload.phone || "student_default" },
@@ -49,13 +46,13 @@ export async function POST(req) {
       return NextResponse.json({ success: true, data: profile });
     }
 
-    // Security Gate: Verify Admin PIN for all CMS actions
+    // Verify Admin PIN
     const SECRET = process.env.ADMIN_SECRET_PIN || "bcs2026";
     if (adminPin !== SECRET) {
       return NextResponse.json({ success: false, error: "ভুল অ্যাডমিন পিন!" }, { status: 401 });
     }
 
-    // Create or Update Lecture (BCS or Defense/Police)
+    // 1. Save or Update Lecture (3 PDFs + Rich Text + 2-Column settings)
     if (action === "SAVE_LECTURE") {
       if (payload._id) {
         const updated = await Lecture.findByIdAndUpdate(payload._id, payload, { new: true });
@@ -71,7 +68,7 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // Create or Update Question Bank Document (PDF + Text)
+    // 2. Save or Update Question Bank Document (PDF + Rich Text + 2-Column)
     if (action === "SAVE_QBANK_DOC") {
       if (payload._id) {
         const updated = await QuestionBankDoc.findByIdAndUpdate(payload._id, payload, { new: true });
@@ -87,16 +84,43 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // Add Single MCQ Question (BCS or Defense Topic Test)
-    if (action === "ADD_QUESTION") {
-      const createdQ = await Question.create(payload);
-      return NextResponse.json({ success: true, data: createdQ });
+    // 3. Publish / Update Test 1 or Test 2 (Up to 50 Questions per Test Set)
+    if (action === "SAVE_EXAM_SET") {
+      const { courseType, subjectId, lectureNo, testNumber, chapterName, title, questions } = payload;
+      const validQuestions = (questions || []).filter((q) => q.question && q.question.trim() !== "");
+
+      if (validQuestions.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "কমপক্ষে ১টি প্রশ্ন পূরণ করে Publish করুন!" },
+          { status: 400 }
+        );
+      }
+
+      const savedSet = await ExamSet.findOneAndUpdate(
+        {
+          courseType: courseType || "bcs",
+          subjectId,
+          lectureNo: Number(lectureNo),
+          testNumber: Number(testNumber),
+        },
+        {
+          courseType: courseType || "bcs",
+          subjectId,
+          lectureNo: Number(lectureNo),
+          chapterName,
+          testNumber: Number(testNumber),
+          title: title || `Test ${testNumber}`,
+          questions: validQuestions,
+        },
+        { upsert: true, new: true }
+      );
+
+      return NextResponse.json({ success: true, data: savedSet });
     }
 
-    // Bulk Upload MCQ Questions via JSON
-    if (action === "BULK_ADD_QUESTIONS") {
-      const inserted = await Question.insertMany(payload.questions);
-      return NextResponse.json({ success: true, count: inserted.length });
+    if (action === "DELETE_EXAM_SET") {
+      await ExamSet.findByIdAndDelete(payload.id);
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ success: false, error: "Invalid Action" }, { status: 400 });
