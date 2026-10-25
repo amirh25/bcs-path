@@ -1,10 +1,8 @@
+
 /**
  * ============================================================================
  * FILE: src/models/PlatformModels.js
  * PURPOSE: MongoDB Mongoose Schemas for BCS Path & Defense/Police Platform
- * NEW MODELS ADDED IN THIS UPDATE:
- *   - VocabStory: For "গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি শিখুন" (with 2 images)
- *   - BiWeeklyContest: 15-Day 200-MCQ Combined BCS Live Exam & Leaderboard Submissions
  * ============================================================================
  */
 
@@ -12,6 +10,8 @@ import mongoose from "mongoose";
 
 /**
  * 1. LECTURE SCHEMA
+ * Includes `embeddedImages` map so Admin Rich Text Editor only shows clean
+ * shortcodes like `[[IMG_1:right]]` instead of huge Base64 strings!
  */
 const LectureSchema = new mongoose.Schema({
   courseType: { type: String, default: "bcs" },
@@ -34,25 +34,28 @@ const LectureSchema = new mongoose.Schema({
   mcqTextContent: { type: String, default: "" },
   writtenTextContent: { type: String, default: "" },
 
+  // Stores Base64/URLs mapped to shortcodes like IMG_1, IMG_2 so textarea stays clean
+  embeddedImages: { type: Object, default: {} },
+
   mcqTwoColumn: { type: Boolean, default: true },
   lectureTwoColumn: { type: Boolean, default: false },
   writtenTwoColumn: { type: Boolean, default: false },
 }, { timestamps: true });
 
 /**
- * 2. VOCABULARY STORY SCHEMA ("গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি শিখুন")
- * Supports rich formatted story text + up to 2 storybook visual images
+ * 2. VOCABULARY STORY SCHEMA
  */
 const VocabStorySchema = new mongoose.Schema({
   storyNo: { type: Number, required: true },
   title: { type: String, required: true },
   subtitle: { type: String, default: "" },
-  storyContent: { type: String, required: true }, // Rich HTML with color grading & font sizes
+  storyContent: { type: String, required: true },
   image1Url: { type: String, default: "" },
-  image1Position: { type: String, default: "right" }, // "left" | "right" | "top" | "bottom"
+  image1Position: { type: String, default: "right" },
   image2Url: { type: String, default: "" },
   image2Position: { type: String, default: "left" },
   wordMeaningBox: { type: String, default: "" },
+  embeddedImages: { type: Object, default: {} },
 }, { timestamps: true });
 
 /**
@@ -67,6 +70,7 @@ const QuestionBankDocSchema = new mongoose.Schema({
   textContent: { type: String, default: "" },
   highlightBox: { type: String, default: "" },
   twoColumn: { type: Boolean, default: true },
+  embeddedImages: { type: Object, default: {} },
 }, { timestamps: true });
 
 /**
@@ -91,29 +95,40 @@ const ExamSetSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 /**
- * 5. 15-DAY NATIONAL BCS COMBINED 200-MCQ LIVE EXAM & LEADERBOARD SCHEMA
- * Each question carries a category tag ("english" | "math" | "general") so the
- * Leaderboard Tie-Breaker can rank tied students by English score first, then Math score!
+ * 5. 10-DAY NATIONAL BCS COMBINED 200-MCQ LIVE EXAM & LEADERBOARD SCHEMA
+ * - Scheduled on the 10th, 20th, and 28th/29th/30th of every month.
+ * - Includes Registration List, Subject-wise 25-Question Tagging, and Subject Weakness Analytics.
  */
 const BiWeeklyContestSchema = new mongoose.Schema({
-  contestId: { type: String, required: true, unique: true }, // e.g., "bcs-15day-contest-1"
+  contestId: { type: String, required: true, unique: true },
   title: { type: String, required: true },
-  examWindowText: { type: String, default: "পাক্ষিক জাতীয় বিসিএস প্রিলিমিনারি পরীক্ষা (১৫ দিন অন্তর)" },
+  examWindowText: { type: String, default: "প্রতি ১০ দিনে ১টি জাতীয় বিসিএস প্রিলিমিনারি পরীক্ষা (মাসে ৩টি: ১০, ২০ ও ৩০ তারিখ)" },
   isActive: { type: Boolean, default: true },
   questions: [
     {
       qNo: { type: Number, required: true }, // 1 to 200
-      category: { type: String, default: "general" }, // "english" | "math" | "general"
+      subjectId: { type: String, default: "bangla" }, // Subject tag for 25-question blocks
+      category: { type: String, default: "general" }, // "english" | "math" | "general" (for tie-breaker)
       question: { type: String, required: true },
       options: [{ type: String }],
       correctAnswer: { type: Number, default: 0 },
       explanation: { type: String, default: "" },
     },
   ],
+  registrations: [
+    {
+      studentKey: { type: String, required: true },
+      name: { type: String, required: true },
+      phone: { type: String, required: true },
+      institution: { type: String, required: true },
+      registeredAt: { type: Date, default: Date.now },
+    },
+  ],
   submissions: [
     {
-      studentKey: { type: String, required: true }, // Unique identifier to prevent Re-Exam
+      studentKey: { type: String, required: true },
       name: { type: String, required: true },
+      phone: { type: String, default: "" },
       institution: { type: String, default: "" },
       avatarUrl: { type: String, default: "" },
       totalScore: { type: Number, required: true },
@@ -122,7 +137,9 @@ const BiWeeklyContestSchema = new mongoose.Schema({
       correctCount: { type: Number, default: 0 },
       wrongCount: { type: Number, default: 0 },
       negativePenalty: { type: Number, default: 0 },
-      answersMap: { type: Object, default: {} }, // Stored so student can review wrong explanations anytime
+      subjectBreakdown: { type: Object, default: {} }, // Per-subject marks & wrong count
+      weakSubjects: [{ type: String }], // Weak subject titles
+      answersMap: { type: Object, default: {} },
       submittedAt: { type: Date, default: Date.now },
     },
   ],

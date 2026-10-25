@@ -4,38 +4,37 @@
  * ============================================================================
  * FILE: src/app/page.js
  * PROJECT: BCS Path — Full-Stack Multi-Course EdTech Platform
- * NEW FEATURES ADDED IN THIS RELEASE:
- * 1. Auto-Scroll Engine: Clicking any lecture, vocabulary story, or question bank
- *    file smoothly scrolls the user directly to the Study Resource Viewer.
- * 2. Added "বাংলা ব্যাকরণ" & "English Grammar" to BCS Dashboard.
- *    Inside "English Grammar", added 4th feature tab:
- *    "গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি শিখুন" with Left Story List &
- *    Right Storybook Reader supporting 2 Visual Images + Rich Colored Text.
- * 3. 15-Day National BCS 200-MCQ Combined Live Exam & Smart Tie-Breaking Leaderboard:
- *    - Open for all students (36 sec/question, 0.50 negative, 60% pass mark, Auto-submit).
- *    - Strict Single-Attempt Policy (No Re-Exam for 15-day live contest).
- *    - Leaderboard Tie-Breaker: Total Score -> English Score -> Math Score.
- *    - Displays Student Name, Institution, Avatar (or 2D Executive Default Avatar).
- * 4. Upgraded Admin Rich Text Toolbar:
- *    - Added Font Size Increment (+) and Decrement (-) buttons.
- *    - Added Visual Image Inserter (Drag/Upload or URL) with Left, Right, Top, Bottom placement.
+ * NEW FEATURES IN THIS RELEASE:
+ * 1. 10-Day National BCS Live Exam Schedule (10th, 20th, and 28th/29th/30th of every month)
+ *    with Live Countdown (Days, Hours, Minutes, Seconds) + Student Registration Gate.
+ * 2. Clean Shortcode Image Engine (`[[IMG_1:right]]`) + Visual Drag & Drop Zone +
+ *    Zero-Jump Scroll Preservation when formatting selected text in Admin Editor.
+ * 3. Restored "সিলেবাস" (Syllabus) button in Mobile Navigation Bar.
+ * 4. Subject Filter & Dynamic Lecture Counter in Admin Uploaded Lectures Sidebar.
+ * 5. 1-Click Bulk Question Importer (.txt / .doc text / .json or Copy-Paste) that
+ *    automatically parses and populates slots 1-25, 26-50... up to 200!
+ * 6. Per-25-Block Subject Selector + Student Subject-wise Marks & Weakness Analytics
+ *    displayed on Result Card & Leaderboard.
+ * 7. Persistent Leaderboard Merit Position until the student submits the next exam.
+ * 8. World-Class Hover & Micro-Interaction Animations across all cards and buttons.
  * ============================================================================
  */
 
 import React, { useState, useEffect, useRef } from "react";
 import {
   BookOpen, CheckCircle2, Sparkles, Trash2, Clock, ShieldCheck,
-  KeyRound, Camera, Building2, EyeOff, Eye, FileText, HelpCircle,
-  PenTool, RotateCcw, Upload, ChevronRight, ArrowLeft, Maximize2,
-  Minimize2, PanelLeftClose, PanelLeftOpen, CheckSquare, Edit3,
-  PlayCircle, Shield, Award, Users, LayoutGrid, Check, Columns,
-  Type, Plus, Minus, Image as ImageIcon, Trophy, Medal, Flame
+  KeyRound, Camera, Building2, FileText, HelpCircle, PenTool,
+  RotateCcw, Upload, ChevronRight, ArrowLeft, Maximize2, Minimize2,
+  PanelLeftClose, PanelLeftOpen, CheckSquare, Edit3, PlayCircle,
+  Shield, Award, Users, LayoutGrid, Check, Columns, Type, Plus,
+  Minus, Image as ImageIcon, Trophy, Flame, Calendar, UserPlus,
+  FileUp, AlertCircle, BarChart3, Filter
 } from "lucide-react";
 import { initialSubjects } from "../data/bcsData";
 
 /**
  * ============================================================================
- * EXTENDED BCS SUBJECTS (INCLUDING "বাংলা ব্যাকরণ" AND "English Grammar")
+ * EXTENDED BCS SUBJECTS (12 SUBJECTS INCLUDING BANGLA & ENGLISH GRAMMAR)
  * ============================================================================
  */
 const EXTRA_GRAMMAR_SUBJECTS = [
@@ -69,7 +68,6 @@ const EXTRA_GRAMMAR_SUBJECTS = [
   },
 ];
 
-// Merge existing 10 subjects with Bangla Grammar & English Grammar
 const FULL_BCS_SUBJECTS = [
   ...initialSubjects.slice(0, 2),
   ...EXTRA_GRAMMAR_SUBJECTS,
@@ -160,7 +158,7 @@ const DEFENSE_SUBJECTS = [
 
 /**
  * ============================================================================
- * HELPER FUNCTIONS
+ * HELPER FUNCTIONS (SHORTCODE IMAGE RENDERER, 10-DAY SCHEDULE, BULK PARSER)
  * ============================================================================
  */
 function formatSecurePdfUrl(url) {
@@ -186,6 +184,132 @@ function getYoutubeEmbedUrl(url) {
   return url;
 }
 
+// Replaces clean shortcodes like [[IMG_1:right]] with actual <img> HTML for students
+function renderContentWithShortcodeImages(htmlContent, embeddedImages = {}) {
+  if (!htmlContent) return "";
+  return htmlContent.replace(
+    /\[\[(IMG_\d+):(left|right|top|bottom)\]\]/g,
+    (_, imgKey, align) => {
+      const src = embeddedImages?.[imgKey];
+      if (!src) return "";
+      let styleStr =
+        "max-width:260px;width:100%;border-radius:12px;border:2px solid #cbd5e1;margin:8px 0;";
+      if (align === "left") {
+        styleStr =
+          "float:left;max-width:250px;width:45%;margin:6px 16px 12px 0;border-radius:12px;border:2px solid #cbd5e1;box-shadow:0 4px 12px rgba(0,0,0,0.06);";
+      } else if (align === "right") {
+        styleStr =
+          "float:right;max-width:250px;width:45%;margin:6px 0 12px 16px;border-radius:12px;border:2px solid #cbd5e1;box-shadow:0 4px 12px rgba(0,0,0,0.06);";
+      } else if (align === "top" || align === "bottom") {
+        styleStr =
+          "display:block;max-width:440px;width:100%;margin:14px auto;border-radius:14px;border:2px solid #cbd5e1;box-shadow:0 4px 12px rgba(0,0,0,0.06);";
+      }
+      return `<img src="${src}" alt="${imgKey}" style="${styleStr}" />`;
+    }
+  );
+}
+
+// Calculates Next 10-Day Exam Date (10th, 20th, or 28th/29th/30th of the month)
+function getNext10DayExamTarget() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const thirdExamDay = daysInMonth < 30 ? daysInMonth : 30; // 28 or 29 for Feb, 30 for others
+
+  const candidateDays = [10, 20, thirdExamDay];
+  for (const d of candidateDays) {
+    const target = new Date(year, month, d, 23, 59, 59);
+    if (now <= target) {
+      return {
+        targetDate: target,
+        scheduleLabel: `${d} তারিখ (${target.toLocaleDateString("bn-BD", { month: "long" })})`,
+        thirdExamDay,
+      };
+    }
+  }
+  const nextMonthTarget = new Date(year, month + 1, 10, 23, 59, 59);
+  return {
+    targetDate: nextMonthTarget,
+    scheduleLabel: `১০ তারিখ (${nextMonthTarget.toLocaleDateString("bn-BD", { month: "long" })})`,
+    thirdExamDay,
+  };
+}
+
+// Smart Bulk Question Parser: Parses either JSON OR Plain Text / Word Doc Copy-Paste!
+function parseBulkQuestionsTextOrJson(rawText) {
+  const trimmed = rawText.trim();
+  if (!trimmed) return [];
+
+  // 1. Try JSON Format first
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {}
+  }
+
+  // 2. Smart Plain Text / Doc Block Parser
+  // Supports blocks separated by blank lines or numbered questions:
+  // Line 1: Question text
+  // Line 2-5: Options (or separated by | or ক/খ/গ/ঘ or A/B/C/D)
+  // Ans/উত্তর: ক/খ/গ/ঘ or A/B/C/D or 1/2/3/4
+  // Exp/ব্যাখ্যা: Explanation text
+  const blocks = trimmed.split(/\n\s*\n+/).filter((b) => b.trim().length > 0);
+  const results = [];
+
+  blocks.forEach((block) => {
+    const lines = block
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length < 2) return;
+
+    const qText = lines[0].replace(/^(\d+|[০-৯]+)[\.\)\-\s]+/, "").trim();
+    let options = ["", "", "", ""];
+    let correctAnswer = 0;
+    let explanation = "";
+
+    const mapAnsChar = (ch) => {
+      const c = ch.trim().toUpperCase();
+      if (c === "খ" || c === "B" || c === "2" || c === "২") return 1;
+      if (c === "গ" || c === "C" || c === "3" || c === "৩") return 2;
+      if (c === "ঘ" || c === "D" || c === "4" || c === "৪") return 3;
+      return 0;
+    };
+
+    const optLines = [];
+    lines.slice(1).forEach((line) => {
+      if (/^(উত্তর|সঠিক উত্তর|ans|answer|correct)\s*[:\-]/i.test(line)) {
+        const val = line.split(/[:\-]/)[1]?.trim() || "ক";
+        correctAnswer = mapAnsChar(val.charAt(0));
+      } else if (/^(ব্যাখ্যা|exp|explanation|নোট)\s*[:\-]/i.test(line)) {
+        explanation = line.replace(/^(ব্যাখ্যা|exp|explanation|নোট)\s*[:\-]\s*/i, "").trim();
+      } else {
+        optLines.push(line);
+      }
+    });
+
+    if (optLines.length === 1 && optLines[0].includes("|")) {
+      const parts = optLines[0].split("|").map((p) => p.replace(/^[কখগঘabcdABCD1-4][\.\)\-\s]+/, "").trim());
+      options = [parts[0] || "", parts[1] || "", parts[2] || "", parts[3] || ""];
+    } else if (optLines.length >= 4) {
+      options = optLines.slice(0, 4).map((p) => p.replace(/^[কখগঘabcdABCD1-4][\.\)\-\s]+/, "").trim());
+    }
+
+    if (qText && (options[0] || options[1])) {
+      results.push({
+        question: qText,
+        options,
+        correctAnswer,
+        explanation,
+      });
+    }
+  });
+
+  return results;
+}
+
 function createEmpty50QuestionsTemplate() {
   return Array.from({ length: 50 }, (_, idx) => ({
     qNo: idx + 1,
@@ -197,16 +321,28 @@ function createEmpty50QuestionsTemplate() {
 }
 
 function createEmpty200QuestionsTemplate() {
+  const defaultBlockSubjects = [
+    "bangla",
+    "english",
+    "bangladesh",
+    "international",
+    "science",
+    "computer",
+    "math",
+    "mental",
+  ];
   return Array.from({ length: 200 }, (_, idx) => {
     const qNo = idx + 1;
-    // Automatically tag English (Q 36-70) and Math (Q 161-190) by default, editable by Admin
-    let defaultCat = "general";
-    if (qNo >= 36 && qNo <= 70) defaultCat = "english";
-    else if (qNo >= 161 && qNo <= 190) defaultCat = "math";
+    const blockIdx = Math.floor(idx / 25);
+    const subjectId = defaultBlockSubjects[blockIdx] || "bangla";
+    let category = "general";
+    if (subjectId === "english" || subjectId === "english_grammar") category = "english";
+    if (subjectId === "math" || subjectId === "mental") category = "math";
 
     return {
       qNo,
-      category: defaultCat, // "english" | "math" | "general"
+      subjectId,
+      category,
       question: "",
       options: ["", "", "", ""],
       correctAnswer: 0,
@@ -217,96 +353,114 @@ function createEmpty200QuestionsTemplate() {
 
 /**
  * ============================================================================
- * COMPONENT: UPGRADED ADMIN RICH TEXT, FONT +/- & VISUAL IMAGE EDITOR
- * Features:
- * - Font Size "+" (Increase) and "-" (Decrease) buttons with live px indicator
- * - Drag & Drop / File Upload or URL Visual Image Inserter with Placement:
- *   Left (পাশে বামে), Right (পাশে ডানে), Top (উপরে), Bottom (নিচে)
- * - Color Grading Text & Highlight Callout Boxes
+ * COMPONENT: UPGRADED ADMIN RICH TEXT EDITOR
+ * Fixes:
+ * 1. Preserves exact scroll position (`savedScrollTop`) when formatting selected text!
+ * 2. Visible Drag & Drop Image Dropzone!
+ * 3. Inserts clean shortcodes `[[IMG_1:right]]` instead of huge Base64 strings,
+ *    with a visual thumbnail gallery right below the editor!
  * ============================================================================
  */
-function RichTextColorEditor({ label, value, onChange, placeholder, rows = 6 }) {
+function RichTextColorEditor({
+  label,
+  value,
+  onChange,
+  embeddedImages = {},
+  onUpdateImages,
+  placeholder,
+  rows = 6,
+}) {
   const textareaRef = useRef(null);
-  const imgInputRef = useRef(null);
   const [fontSizePx, setFontSizePx] = useState(18);
-  const [imgAlign, setImgAlign] = useState("right"); // "left" | "right" | "top" | "bottom"
+  const [imgAlign, setImgAlign] = useState("right");
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-  const applyFormatting = (openTag, closeTag) => {
+  // Preserves exact scrollTop & selection range so the textarea NEVER jumps to the bottom!
+  const applyFormattingWithoutScrollJump = (openTag, closeTag) => {
     const el = textareaRef.current;
     if (!el) return;
+    const savedScrollTop = el.scrollTop;
     const start = el.selectionStart;
     const end = el.selectionEnd;
     const selectedText = value.substring(start, end) || "এখানে লিখুন";
     const updated =
       value.substring(0, start) + openTag + selectedText + closeTag + value.substring(end);
     onChange(updated);
-    setTimeout(() => {
-      el.focus();
+
+    requestAnimationFrame(() => {
+      el.focus({ preventScroll: true });
       el.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
-    }, 20);
+      el.scrollTop = savedScrollTop;
+    });
   };
 
-  // Apply dynamic font size when clicking '+' or '-'
   const handleFontSizeStep = (delta) => {
     const nextSize = Math.min(34, Math.max(13, fontSizePx + delta));
     setFontSizePx(nextSize);
-    applyFormatting(
+    applyFormattingWithoutScrollJump(
       `<span style="font-size:${nextSize}px;line-height:1.6;font-weight:700;">`,
       `</span>`
     );
   };
 
-  // Insert Visual Image into Note at chosen position (Left, Right, Top, Bottom)
-  const insertVisualImageHtml = (imgSrc) => {
-    if (!imgSrc) return;
-    let styleStr =
-      "max-width:260px;width:100%;border-radius:12px;border:2px solid #cbd5e1;margin:8px 0;box-shadow:0 4px 10px rgba(0,0,0,0.06);";
-    if (imgAlign === "left") {
-      styleStr =
-        "float:left;max-width:240px;width:45%;margin:4px 16px 10px 0;border-radius:12px;border:2px solid #cbd5e1;";
-    } else if (imgAlign === "right") {
-      styleStr =
-        "float:right;max-width:240px;width:45%;margin:4px 0 10px 16px;border-radius:12px;border:2px solid #cbd5e1;";
-    } else if (imgAlign === "top" || imgAlign === "bottom") {
-      styleStr =
-        "display:block;max-width:420px;width:100%;margin:14px auto;border-radius:14px;border:2px solid #cbd5e1;";
-    }
-
-    const imgTag = `\n<img src="${imgSrc}" alt="Visual Note Illustration" style="${styleStr}" />\n`;
-
-    if (imgAlign === "top") {
-      onChange(imgTag + value);
-    } else if (imgAlign === "bottom") {
-      onChange(value + imgTag);
-    } else {
-      const el = textareaRef.current;
-      const pos = el ? el.selectionStart : value.length;
-      onChange(value.substring(0, pos) + imgTag + value.substring(pos));
-    }
-  };
-
-  const handleImageFileUpload = (e) => {
-    const file = e.target.files?.[0];
+  // Stores Base64 image in `embeddedImages` dictionary and inserts clean `[[IMG_1:right]]` shortcode!
+  const processImageFile = (file) => {
     if (!file) return;
-    if (file.size > 2.5 * 1024 * 1024) {
-      alert("⚠️ ছবির সাইজ ২.৫ মেগাবাইটের কম হতে হবে!");
+    if (file.size > 3 * 1024 * 1024) {
+      alert("⚠️ ছবির সাইজ সর্বোচ্চ ৩ মেগাবাইট হতে পারবে!");
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => insertVisualImageHtml(reader.result);
+    reader.onload = () => {
+      const nextIndex = Object.keys(embeddedImages || {}).length + 1;
+      const imgKey = `IMG_${nextIndex}`;
+      const nextImagesMap = { ...(embeddedImages || {}), [imgKey]: reader.result };
+      if (onUpdateImages) onUpdateImages(nextImagesMap);
+
+      const shortcode = `\n[[${imgKey}:${imgAlign}]]\n`;
+      const el = textareaRef.current;
+      const savedScrollTop = el ? el.scrollTop : 0;
+      const pos = el ? el.selectionStart : value.length;
+      const updatedText = value.substring(0, pos) + shortcode + value.substring(pos);
+      onChange(updatedText);
+
+      requestAnimationFrame(() => {
+        if (el) {
+          el.focus({ preventScroll: true });
+          el.scrollTop = savedScrollTop;
+        }
+      });
+    };
     reader.readAsDataURL(file);
   };
 
   return (
-    <div className="border border-slate-300 rounded-2xl overflow-hidden bg-white shadow-2xs">
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDraggingOver(true);
+      }}
+      onDragLeave={() => setIsDraggingOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDraggingOver(false);
+        const file = e.dataTransfer?.files?.[0];
+        if (file && file.type.startsWith("image/")) {
+          processImageFile(file);
+        }
+      }}
+      className={`border-2 rounded-2xl overflow-hidden bg-white transition ${
+        isDraggingOver ? "border-purple-600 ring-4 ring-purple-100 bg-purple-50/20" : "border-slate-300"
+      }`}
+    >
       <div className="bg-slate-100 px-3.5 py-2.5 border-b border-slate-200 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="font-extrabold text-xs sm:text-sm text-slate-900">{label}</span>
 
-          {/* Visual Image Inserter with Position Selector (Side Left/Right, Top, Bottom) */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-slate-300">
+          {/* Visual Drag & Drop / Upload Image Control */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-purple-200 shadow-2xs">
             <ImageIcon className="w-4 h-4 text-purple-700" />
-            <span className="text-[11px] font-extrabold text-slate-700">ভিজ্যুয়াল ইমেজ পজিশন:</span>
+            <span className="text-[11px] font-extrabold text-slate-700">ইমেজ পজিশন:</span>
             <select
               value={imgAlign}
               onChange={(e) => setImgAlign(e.target.value)}
@@ -318,35 +472,32 @@ function RichTextColorEditor({ label, value, onChange, placeholder, rows = 6 }) 
               <option value="bottom">তথ্যের নিচে (Bottom)</option>
             </select>
 
-            <label className="px-2.5 py-1 bg-purple-700 text-white rounded-lg text-xs font-extrabold cursor-pointer hover:bg-purple-800 flex items-center gap-1">
-              <Upload className="w-3.5 h-3.5" /> ইমেজ যোগ করুন
+            <label className="px-3 py-1 bg-purple-700 text-white rounded-lg text-xs font-extrabold cursor-pointer hover:bg-purple-800 flex items-center gap-1">
+              <Upload className="w-3.5 h-3.5" /> ইমেজ যোগ / Drag & Drop
               <input
-                ref={imgInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleImageFileUpload}
+                onChange={(e) => processImageFile(e.target.files?.[0])}
                 className="hidden"
               />
             </label>
           </div>
         </div>
 
-        {/* Rich Formatting, Font '+' / '-' & Color Grading Toolbar */}
+        {/* Formatting Toolbar */}
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
-            onClick={() => applyFormatting("<b>", "</b>")}
+            onClick={() => applyFormattingWithoutScrollJump("<b>", "</b>")}
             className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-black hover:bg-slate-200 cursor-pointer"
           >
             B (বোল্ড)
           </button>
 
-          {/* Font Size '+' and '-' Controls */}
           <div className="inline-flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden">
             <button
               type="button"
               onClick={() => handleFontSizeStep(-2)}
-              title="ফন্ট ছোট করুন (-)"
               className="px-2.5 py-1 hover:bg-slate-200 text-slate-900 font-black text-xs flex items-center gap-0.5 border-r border-slate-200 cursor-pointer"
             >
               <Type className="w-3.5 h-3.5" /> <Minus className="w-3 h-3" />
@@ -357,41 +508,43 @@ function RichTextColorEditor({ label, value, onChange, placeholder, rows = 6 }) 
             <button
               type="button"
               onClick={() => handleFontSizeStep(2)}
-              title="ফন্ট বড় করুন (+)"
               className="px-2.5 py-1 hover:bg-slate-200 text-slate-900 font-black text-xs flex items-center gap-0.5 border-l border-slate-200 cursor-pointer"
             >
               <Type className="w-3.5 h-3.5" /> <Plus className="w-3 h-3" />
             </button>
           </div>
 
-          {/* Color Grading Text Buttons */}
           <button
             type="button"
-            onClick={() => applyFormatting('<span style="color:#dc2626;font-weight:700;">', "</span>")}
+            onClick={() =>
+              applyFormattingWithoutScrollJump('<span style="color:#dc2626;font-weight:700;">', "</span>")
+            }
             className="px-2 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-extrabold cursor-pointer"
           >
             🔴 লাল টেক্সট
           </button>
           <button
             type="button"
-            onClick={() => applyFormatting('<span style="color:#2563eb;font-weight:700;">', "</span>")}
+            onClick={() =>
+              applyFormattingWithoutScrollJump('<span style="color:#2563eb;font-weight:700;">', "</span>")
+            }
             className="px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-extrabold cursor-pointer"
           >
             🔵 নীল টেক্সট
           </button>
           <button
             type="button"
-            onClick={() => applyFormatting('<span style="color:#059669;font-weight:700;">', "</span>")}
+            onClick={() =>
+              applyFormattingWithoutScrollJump('<span style="color:#059669;font-weight:700;">', "</span>")
+            }
             className="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-extrabold cursor-pointer"
           >
             🟢 সবুজ টেক্সট
           </button>
-
-          {/* Highlight Boxes */}
           <button
             type="button"
             onClick={() =>
-              applyFormatting(
+              applyFormattingWithoutScrollJump(
                 '<div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 14px;border-radius:8px;margin:8px 0;color:#78350f;font-weight:600;clear:both;">',
                 "</div>"
               )
@@ -403,7 +556,7 @@ function RichTextColorEditor({ label, value, onChange, placeholder, rows = 6 }) 
           <button
             type="button"
             onClick={() =>
-              applyFormatting(
+              applyFormattingWithoutScrollJump(
                 '<div style="background:#dcfce7;border-left:4px solid #10b981;padding:10px 14px;border-radius:8px;margin:8px 0;color:#064e3b;font-weight:600;clear:both;">',
                 "</div>"
               )
@@ -415,7 +568,7 @@ function RichTextColorEditor({ label, value, onChange, placeholder, rows = 6 }) 
           <button
             type="button"
             onClick={() =>
-              applyFormatting(
+              applyFormattingWithoutScrollJump(
                 '<div style="background:#dbeafe;border-left:4px solid #3b82f6;padding:10px 14px;border-radius:8px;margin:8px 0;color:#1e3a8a;font-weight:600;clear:both;">',
                 "</div>"
               )
@@ -427,31 +580,41 @@ function RichTextColorEditor({ label, value, onChange, placeholder, rows = 6 }) 
         </div>
       </div>
 
-      {/* Supports Drag & Drop Image directly onto Textarea */}
+      {/* Visible Drag & Drop Indicator Bar */}
+      {isDraggingOver && (
+        <div className="bg-purple-600 text-white text-center py-2 text-xs font-extrabold">
+          📥 এখানে ইমেজটি ছেড়ে দিন (Drop Image Here) — স্বয়ংক্রিয়ভাবে শর্টকোড হিসেবে যুক্ত হবে!
+        </div>
+      )}
+
       <textarea
         ref={textareaRef}
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onDrop={(e) => {
-          const file = e.dataTransfer?.files?.[0];
-          if (file && file.type.startsWith("image/")) {
-            e.preventDefault();
-            const reader = new FileReader();
-            reader.onload = () => insertVisualImageHtml(reader.result);
-            reader.readAsDataURL(file);
-          }
-        }}
-        placeholder={`${placeholder} (চাইলে এখানে সরাসরি ইমেজ Drag & Drop করতেও পারেন)`}
+        placeholder={`${placeholder} (ইমেজ যুক্ত করলে হিজিবিজি কোডের বদলে শুধু [[IMG_1:right]] শর্টকোড দেখাবে)`}
         className="w-full p-3.5 text-sm text-slate-900 outline-none leading-relaxed font-medium"
       />
+
+      {/* Clean Thumbnail Gallery for Attached Shortcode Images */}
+      {embeddedImages && Object.keys(embeddedImages).length > 0 && (
+        <div className="px-3.5 py-2.5 bg-purple-50/60 border-t border-purple-200 flex flex-wrap items-center gap-3">
+          <span className="text-xs font-extrabold text-purple-950">যুক্তকৃত ভিজ্যুয়াল ইমেজসমূহ:</span>
+          {Object.entries(embeddedImages).map(([key, src]) => (
+            <div key={key} className="inline-flex items-center gap-2 bg-white px-2.5 py-1 rounded-xl border border-purple-200 shadow-2xs">
+              <img src={src} alt={key} className="w-8 h-8 rounded object-cover" />
+              <code className="text-[11px] font-black text-purple-800">{`[[${key}]]`}</code>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 /**
  * ============================================================================
- * COMPONENT: MINI 2D EXECUTIVE AVATAR (FOR LEADERBOARD DEFAULT PHOTO)
+ * COMPONENT: MINI 2D EXECUTIVE AVATAR
  * ============================================================================
  */
 function MiniExecutive2DAvatar({ size = "w-10 h-10" }) {
@@ -470,7 +633,7 @@ function MiniExecutive2DAvatar({ size = "w-10 h-10" }) {
 
 /**
  * ============================================================================
- * COMPONENT: FULL 2D EXECUTIVE STUDENT AVATAR (FOR PORTAL LANDING PAGE)
+ * COMPONENT: FULL 2D EXECUTIVE STUDENT AVATAR
  * ============================================================================
  */
 function ExecutiveStudent2DAvatar() {
@@ -532,7 +695,7 @@ function ExecutiveStudent2DAvatar() {
 }
 
 export default function BCSPathPlatform() {
-  // Auto-Scroll Target Refs for Smooth UX
+  // Smooth Auto-Scroll Refs
   const studyResourceRef = useRef(null);
   const vocabReaderRef = useRef(null);
   const qbankReaderRef = useRef(null);
@@ -599,11 +762,12 @@ export default function BCSPathPlatform() {
   const [progressMap, setProgressMap] = useState({});
   const [completedQuizzesCount, setCompletedQuizzesCount] = useState(0);
 
-  // Student Profile & Unique Key for Contest Leaderboard
+  // Student Profile State
   const fileInputRef = useRef(null);
   const [studentUniqueKey, setStudentUniqueKey] = useState("student_default");
   const [profile, setProfile] = useState({
     name: "Hamza",
+    phone: "",
     targetBcs: "লক্ষ্য: ৪৭তম BCS",
     institution: "Metropolitan University, Sylhet",
     hideProfile: false,
@@ -616,7 +780,6 @@ export default function BCSPathPlatform() {
   // Lecture & Story Vocabulary State
   const [activeSubjectId, setActiveSubjectId] = useState("bangla");
   const [activeLecture, setActiveLecture] = useState(null);
-  // 'video' | 'lecture' | 'mcq_pdf' | 'written_pdf' | 'vocab_story'
   const [activePdfStep, setActivePdfStep] = useState("lecture");
   const [activeVocabStory, setActiveVocabStory] = useState(null);
   const [contentViewMode, setContentViewMode] = useState("pdf");
@@ -640,7 +803,22 @@ export default function BCSPathPlatform() {
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
 
-  // 15-Day 200-MCQ National BCS Live Contest & Leaderboard State
+  // 10-Day 200-MCQ National BCS Live Contest, Countdown & Registration State
+  const [nextExamCountdown, setNextExamCountdown] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    scheduleLabel: "১০ তারিখ",
+    thirdExamDay: 30,
+  });
+  const [showContestRegModal, setShowContestRegModal] = useState(false);
+  const [contestRegForm, setContestRegForm] = useState({
+    name: "",
+    phone: "",
+    institution: "",
+  });
+  const [isRegisteredForContest, setIsRegisteredForContest] = useState(false);
   const [isContestRoomActive, setIsContestRoomActive] = useState(false);
   const [contestAnswers, setContestAnswers] = useState({});
   const [contestTimeLeft, setContestTimeLeft] = useState(0);
@@ -650,9 +828,10 @@ export default function BCSPathPlatform() {
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [adminPinInput, setAdminPinInput] = useState("");
   const [adminCourseTrack, setAdminCourseTrack] = useState("bcs");
-  // 'lectures' | 'vocab_stories' | 'exam_builder' | 'biweekly_200' | 'qbank'
   const [adminSection, setAdminSection] = useState("lectures");
   const [editingId, setEditingId] = useState(null);
+  // Subject Filter for Admin Uploaded Lectures Sidebar (Requirement 4)
+  const [adminLectureFilterSubject, setAdminLectureFilterSubject] = useState("ALL");
 
   const [formData, setFormData] = useState({
     courseType: "bcs",
@@ -670,12 +849,12 @@ export default function BCSPathPlatform() {
     confusionBox: "",
     mcqTextContent: "",
     writtenTextContent: "",
+    embeddedImages: {},
     mcqTwoColumn: true,
     lectureTwoColumn: false,
     writtenTwoColumn: false,
   });
 
-  // Admin Form: Vocabulary Story ("গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি")
   const [vocabFormData, setVocabFormData] = useState({
     storyNo: 1,
     title: "",
@@ -686,10 +865,10 @@ export default function BCSPathPlatform() {
     image2Url: "",
     image2Position: "left",
     wordMeaningBox: "",
+    embeddedImages: {},
   });
   const [editingVocabId, setEditingVocabId] = useState(null);
 
-  // Admin Form: Question Bank
   const [qbFormData, setQbFormData] = useState({
     courseType: "bcs",
     subjectId: "bangla",
@@ -699,10 +878,11 @@ export default function BCSPathPlatform() {
     textContent: "",
     highlightBox: "",
     twoColumn: true,
+    embeddedImages: {},
   });
   const [editingQbId, setEditingQbId] = useState(null);
 
-  // Admin Form: 50-Question Chapter Test 1 & Test 2
+  // Admin 50-Question Chapter Test 1 & Test 2 Builder + Bulk Importer
   const [examBuilderMeta, setExamBuilderMeta] = useState({
     courseType: "bcs",
     subjectId: "bangla",
@@ -714,18 +894,37 @@ export default function BCSPathPlatform() {
     createEmpty50QuestionsTemplate()
   );
   const [activeSlotRange, setActiveSlotRange] = useState("1-10");
+  const [bulk50Text, setBulk50Text] = useState("");
 
-  // Admin Form: 15-Day 200-MCQ National Contest Builder
+  // Admin 10-Day 200-MCQ National Contest Builder + Bulk Importer + Per-25 Subject Selector
   const [contestBuilderMeta, setContestBuilderMeta] = useState({
     contestId: "bcs-biweekly-main",
     title: "৪৭তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড পরীক্ষা (২০০ এমসিকিউ)",
-    examWindowText: "প্রতি ১৫ দিনে ১টি জাতীয় মেধা যাচাই পরীক্ষা · পাস মার্ক ৬০%",
+    examWindowText: "প্রতি ১০ দিনে ১টি জাতীয় মেধা যাচাই পরীক্ষা (১০, ২০ ও ৩০ তারিখ)",
     resetSubmissions: false,
   });
   const [template200Questions, setTemplate200Questions] = useState(() =>
     createEmpty200QuestionsTemplate()
   );
   const [active200Range, setActive200Range] = useState("1-25");
+  const [bulk200Text, setBulk200Text] = useState("");
+  const [bulk200TargetMode, setBulk200TargetMode] = useState("CURRENT_25"); // "CURRENT_25" | "ALL_200"
+
+  // Live 10-Day Exam Schedule Countdown Effect (10th, 20th, and 28th/29th/30th)
+  useEffect(() => {
+    const updateCountdown = () => {
+      const { targetDate, scheduleLabel, thirdExamDay } = getNext10DayExamTarget();
+      const diffMs = Math.max(0, targetDate.getTime() - Date.now());
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+      const seconds = Math.floor((diffMs / 1000) % 60);
+      setNextExamCountdown({ days, hours, minutes, seconds, scheduleLabel, thirdExamDay });
+    };
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch Cloud Data
   const fetchCloudData = async () => {
@@ -744,7 +943,6 @@ export default function BCSPathPlatform() {
         setContests(data.contests || []);
         setStudentsCount(data.studentsCount || 1);
 
-        // Populate 200-Question Admin Template if contest already exists
         if (data.contests?.length > 0) {
           const activeC = data.contests[0];
           setContestBuilderMeta((prev) => ({
@@ -758,6 +956,7 @@ export default function BCSPathPlatform() {
             return found
               ? {
                   qNo: slot.qNo,
+                  subjectId: found.subjectId || slot.subjectId,
                   category: found.category || slot.category,
                   question: found.question || "",
                   options: found.options?.length === 4 ? [...found.options] : ["", "", "", ""],
@@ -778,7 +977,6 @@ export default function BCSPathPlatform() {
 
   useEffect(() => {
     fetchCloudData();
-    // Initialize unique student key for leaderboard & single-attempt verification
     let uKey = localStorage.getItem("bcs_student_unique_key");
     if (!uKey) {
       uKey = "stu_" + Math.random().toString(36).substring(2, 10) + "_" + Date.now();
@@ -792,8 +990,16 @@ export default function BCSPathPlatform() {
         const parsed = JSON.parse(savedProf);
         setProfile(parsed);
         setTempPortalName(parsed.name || "Hamza");
+        setContestRegForm({
+          name: parsed.name || "",
+          phone: parsed.phone || "",
+          institution: parsed.institution || "",
+        });
       } catch (e) {}
     }
+    const savedReg = localStorage.getItem("bcs_contest_registered");
+    if (savedReg === "true") setIsRegisteredForContest(true);
+
     const savedProg = localStorage.getItem("bcs_lecture_progress_v2");
     if (savedProg) {
       try { setProgressMap(JSON.parse(savedProg)); } catch (e) {}
@@ -870,6 +1076,7 @@ export default function BCSPathPlatform() {
 
   const handleAdminCourseSwitch = (track) => {
     setAdminCourseTrack(track);
+    setAdminLectureFilterSubject("ALL");
     const defaultSub = track === "bcs" ? "bangla" : "def_math";
     setFormData((prev) => ({ ...prev, courseType: track, subjectId: defaultSub }));
     setQbFormData((prev) => ({ ...prev, courseType: track, subjectId: defaultSub }));
@@ -882,7 +1089,7 @@ export default function BCSPathPlatform() {
     }));
   };
 
-  // Complete Lecture & Smooth Scroll to Top of Next Lecture Resource
+  // Complete Lecture & Auto-Scroll
   const completeAndGoToNextLecture = (lec, subjectLecs) => {
     const lecId = lec._id || lec.id;
     setProgressMap((prev) => {
@@ -937,7 +1144,7 @@ export default function BCSPathPlatform() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "SAVE_PROFILE",
-          payload: { ...newProf, phone: studentUniqueKey },
+          payload: { ...newProf, phone: newProf.phone || studentUniqueKey },
         }),
       });
     } catch (e) {}
@@ -970,7 +1177,6 @@ export default function BCSPathPlatform() {
     reader.readAsDataURL(file);
   };
 
-  // Upload Story Image 1 or Image 2 for Vocabulary Story
   const handleVocabStoryImageUpload = (e, imgField) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -985,7 +1191,106 @@ export default function BCSPathPlatform() {
 
   /**
    * ==========================================================================
-   * CHAPTER TEST 1 & TEST 2 ENGINE (50 Questions, 36s/Q, 60% Pass)
+   * BULK QUESTION IMPORTERS (FOR 50-Q TEST 1/2 AND 200-Q NATIONAL CONTEST)
+   * Allows Admin to upload a .txt / .json file or paste text to auto-fill slots!
+   * ==========================================================================
+   */
+  const applyBulkTo50Template = (rawContent) => {
+    const parsedList = parseBulkQuestionsTextOrJson(rawContent);
+    if (parsedList.length === 0) {
+      alert("⚠️ কোনো প্রশ্ন শনাক্ত করা যায়নি! অনুগ্রহ করে সঠিক ফরম্যাটে প্রশ্ন দিন।");
+      return;
+    }
+    const [rangeStart] = activeSlotRange === "ALL" ? [1] : activeSlotRange.split("-").map(Number);
+    const startIdx = parsedList.length > 15 ? 1 : rangeStart;
+
+    setTemplate50Questions((prev) =>
+      prev.map((slot) => {
+        const offset = slot.qNo - startIdx;
+        if (offset >= 0 && offset < parsedList.length) {
+          const item = parsedList[offset];
+          return {
+            ...slot,
+            question: item.question || "",
+            options:
+              item.options?.length === 4
+                ? item.options
+                : [item.opt0 || "", item.opt1 || "", item.opt2 || "", item.opt3 || ""],
+            correctAnswer: Number(item.correctAnswer || 0),
+            explanation: item.explanation || "",
+          };
+        }
+        return slot;
+      })
+    );
+    setBulk50Text("");
+    alert(`🎉 এক ক্লিকে ${parsedList.length}টি প্রশ্ন স্বয়ংক্রিয়ভাবে টেমপ্লেটে বসে গেছে!`);
+  };
+
+  const applyBulkTo200Template = (rawContent) => {
+    const parsedList = parseBulkQuestionsTextOrJson(rawContent);
+    if (parsedList.length === 0) {
+      alert("⚠️ কোনো প্রশ্ন শনাক্ত করা যায়নি! অনুগ্রহ করে সঠিক ফরম্যাটে প্রশ্ন দিন।");
+      return;
+    }
+    const [rangeStart] = active200Range.split("-").map(Number);
+    const startQNo = bulk200TargetMode === "ALL_200" || parsedList.length > 25 ? 1 : rangeStart;
+
+    setTemplate200Questions((prev) =>
+      prev.map((slot) => {
+        const offset = slot.qNo - startQNo;
+        if (offset >= 0 && offset < parsedList.length) {
+          const item = parsedList[offset];
+          return {
+            ...slot,
+            question: item.question || "",
+            options:
+              item.options?.length === 4
+                ? item.options
+                : [item.opt0 || "", item.opt1 || "", item.opt2 || "", item.opt3 || ""],
+            correctAnswer: Number(item.correctAnswer || 0),
+            explanation: item.explanation || "",
+          };
+        }
+        return slot;
+      })
+    );
+    setBulk200Text("");
+    alert(
+      `🎉 অভিনন্দন! প্রশ্ন #${startQNo} থেকে শুরু করে মোট ${parsedList.length}টি প্রশ্ন স্বয়ংক্রিয়ভাবে সঠিক পজিশনে বসে গেছে!`
+    );
+  };
+
+  const handleBulkFileUpload = (e, targetType) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (targetType === "200") applyBulkTo200Template(reader.result);
+      else applyBulkTo50Template(reader.result);
+    };
+    reader.readAsText(file);
+  };
+
+  // Set Subject for an entire 25-Question Block in 200-Q Builder (Requirement 6)
+  const setSubjectFor25Block = (rangeStr, newSubId) => {
+    const [min, max] = rangeStr.split("-").map(Number);
+    let autoCategory = "general";
+    if (newSubId === "english" || newSubId === "english_grammar") autoCategory = "english";
+    if (newSubId === "math" || newSubId === "mental") autoCategory = "math";
+
+    setTemplate200Questions((prev) =>
+      prev.map((slot) =>
+        slot.qNo >= min && slot.qNo <= max
+          ? { ...slot, subjectId: newSubId, category: autoCategory }
+          : slot
+      )
+    );
+  };
+
+  /**
+   * ==========================================================================
+   * CHAPTER TEST 1 & TEST 2 ENGINE
    * ==========================================================================
    */
   const launchSpecificExamSet = (examSetDoc) => {
@@ -1060,26 +1365,18 @@ export default function BCSPathPlatform() {
 
   /**
    * ==========================================================================
-   * 15-DAY NATIONAL 200-MCQ COMBINED BCS EXAM & TIE-BREAKING LEADERBOARD
-   * Rules:
-   * - 200 MCQs (or whatever Admin has set in the contest)
-   * - 36 Seconds per question
-   * - 0.50 Negative Marking per wrong answer
-   * - 60% Pass Mark
-   * - Auto-Submit when timer hits 0
-   * - NO RE-EXAM ALLOWED (One submission per student per 15-day contest)
-   * - Tie-Breaker:
-   *     1. Higher Total Score
-   *     2. Higher English Score
-   *     3. Higher Math Score
+   * 10-DAY NATIONAL 200-MCQ LIVE EXAM, REGISTRATION & SUBJECT WEAKNESS ENGINE
    * ==========================================================================
    */
   const currentActiveContest = contests[0] || null;
   const myContestSubmission = currentActiveContest?.submissions?.find(
-    (sub) => sub.studentKey === studentUniqueKey || sub.name.toLowerCase() === profile.name.toLowerCase()
+    (sub) =>
+      sub.studentKey === studentUniqueKey ||
+      (profile.phone && sub.phone === profile.phone) ||
+      sub.name.toLowerCase() === profile.name.toLowerCase()
   );
 
-  // Sort Leaderboard with Smart Tie-Breaking (Total Score -> English Score -> Math Score)
+  // Tie-Breaking Leaderboard Sort: Total Score -> English Score -> Math Score
   const sortedLeaderboard = currentActiveContest?.submissions
     ? [...currentActiveContest.submissions].sort((a, b) => {
         if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
@@ -1095,21 +1392,68 @@ export default function BCSPathPlatform() {
     ? sortedLeaderboard.findIndex((s) => s.studentKey === myContestSubmission.studentKey) + 1
     : null;
 
-  const startBiWeekly200Contest = () => {
-    if (!currentActiveContest || !currentActiveContest.questions?.length) {
-      alert("⚠️ অ্যাডমিন প্যানেল থেকে এখনো ১৫ দিনের জাতীয় বিসিএস পরীক্ষাটির প্রশ্ন প্রকাশ করা হয়নি!");
-      return;
-    }
+  // Step 1: Student Clicks "Register & Start Exam"
+  const handleOpenRegistrationOrStartExam = () => {
     if (myContestSubmission) {
-      alert("ℹ️ আপনি ইতিমধ্যে এই ১৫ দিনের জাতীয় পরীক্ষায় অংশ নিয়েছেন! নিচে আপনার মেধা স্থান (Position) ও ভুল উত্তরের ব্যাখ্যা দেখুন।");
+      alert("ℹ️ আপনি ইতিমধ্যে এই পর্বের পরীক্ষায় অংশ নিয়েছেন! নিচে আপনার মেধা স্থান ও বিষয়ভিত্তিক ফলাফল দেখুন।");
       return;
     }
+    setContestRegForm({
+      name: profile.name || "",
+      phone: profile.phone || "",
+      institution: profile.institution || "",
+    });
+    setShowContestRegModal(true);
+  };
+
+  // Step 2: Submit Registration (Phone, Name, Institution) & Immediately Open Exam UI
+  const handleContestRegistrationSubmit = async (e) => {
+    e.preventDefault();
+    if (!contestRegForm.name.trim() || !contestRegForm.phone.trim() || !contestRegForm.institution.trim()) {
+      alert("⚠️ অনুগ্রহ করে আপনার নাম, মোবাইল নম্বর এবং শিক্ষাপ্রতিষ্ঠানের নাম পূরণ করুন!");
+      return;
+    }
+
+    await updateProfile({
+      name: contestRegForm.name.trim(),
+      phone: contestRegForm.phone.trim(),
+      institution: contestRegForm.institution.trim(),
+    });
+
+    try {
+      await fetch("/api/platform", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "REGISTER_CONTEST",
+          payload: {
+            contestId: currentActiveContest?.contestId || "bcs-biweekly-main",
+            studentKey: studentUniqueKey,
+            name: contestRegForm.name.trim(),
+            phone: contestRegForm.phone.trim(),
+            institution: contestRegForm.institution.trim(),
+          },
+        }),
+      });
+    } catch (err) {}
+
+    localStorage.setItem("bcs_contest_registered", "true");
+    setIsRegisteredForContest(true);
+    setShowContestRegModal(false);
+
+    if (!currentActiveContest || !currentActiveContest.questions?.length) {
+      alert("✅ আপনার রেজিস্ট্রেশন সম্পন্ন হয়েছে! অ্যাডমিন প্রশ্ন পাবলিশ করলেই পরীক্ষা শুরু হবে।");
+      return;
+    }
+
+    // Open Exam UI immediately after registration!
     setContestAnswers({});
-    setContestTimeLeft(currentActiveContest.questions.length * 36); // 36 sec per question
+    setContestTimeLeft(currentActiveContest.questions.length * 36);
     setIsContestRoomActive(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Step 3: Submit 200-Q Exam & Compute Subject-wise Marks + Weak Subjects
   const submitBiWeeklyContestExam = async () => {
     if (!currentActiveContest || contestSubmitting) return;
     setContestSubmitting(true);
@@ -1118,30 +1462,58 @@ export default function BCSPathPlatform() {
     let wrong = 0;
     let engScore = 0;
     let mathScore = 0;
+    const subjectBreakdown = {};
 
     currentActiveContest.questions.forEach((q, idx) => {
       const qKey = q.qNo || idx + 1;
+      const subId = q.subjectId || "bangla";
+      const subTitle =
+        bcsSubjects.find((s) => s.id === subId)?.title || subId;
+
+      if (!subjectBreakdown[subId]) {
+        subjectBreakdown[subId] = {
+          subjectId: subId,
+          title: subTitle,
+          total: 0,
+          correct: 0,
+          wrong: 0,
+          unanswered: 0,
+          marks: 0,
+        };
+      }
+      subjectBreakdown[subId].total += 1;
+
       const ans = contestAnswers[qKey];
-      if (ans !== undefined) {
-        if (Number(ans) === Number(q.correctAnswer)) {
-          correct += 1;
-          if (q.category === "english") engScore += 1;
-          if (q.category === "math") mathScore += 1;
-        } else {
-          wrong += 1;
-          if (q.category === "english") engScore -= 0.5;
-          if (q.category === "math") mathScore -= 0.5;
-        }
+      if (ans === undefined) {
+        subjectBreakdown[subId].unanswered += 1;
+      } else if (Number(ans) === Number(q.correctAnswer)) {
+        correct += 1;
+        subjectBreakdown[subId].correct += 1;
+        subjectBreakdown[subId].marks = +(subjectBreakdown[subId].marks + 1).toFixed(2);
+        if (q.category === "english" || subId.includes("english")) engScore += 1;
+        if (q.category === "math" || subId === "math") mathScore += 1;
+      } else {
+        wrong += 1;
+        subjectBreakdown[subId].wrong += 1;
+        subjectBreakdown[subId].marks = +(subjectBreakdown[subId].marks - 0.5).toFixed(2);
+        if (q.category === "english" || subId.includes("english")) engScore -= 0.5;
+        if (q.category === "math" || subId === "math") mathScore -= 0.5;
       }
     });
+
+    // Identify weak subjects (< 50% accuracy or high wrong answers)
+    const weakSubjects = Object.values(subjectBreakdown)
+      .filter((st) => st.total > 0 && (st.marks / st.total < 0.5 || st.wrong >= 3))
+      .map((st) => st.title);
 
     const negativePenalty = wrong * 0.5;
     const totalScore = Math.max(0, +(correct - negativePenalty).toFixed(2));
 
     const submissionPayload = {
       studentKey: studentUniqueKey,
-      name: profile.name || "বিসিএস পরীক্ষার্থী",
-      institution: profile.hideProfile ? "" : profile.institution || "স্বতন্ত্র পরীক্ষার্থী",
+      name: profile.name || contestRegForm.name || "বিসিএস পরীক্ষার্থী",
+      phone: profile.phone || contestRegForm.phone || "",
+      institution: profile.hideProfile ? "" : profile.institution || contestRegForm.institution || "স্বতন্ত্র পরীক্ষার্থী",
       avatarUrl: profile.avatarUrl || "",
       totalScore,
       englishScore: +engScore.toFixed(2),
@@ -1149,6 +1521,8 @@ export default function BCSPathPlatform() {
       correctCount: correct,
       wrongCount: wrong,
       negativePenalty,
+      subjectBreakdown,
+      weakSubjects,
       answersMap: contestAnswers,
     };
 
@@ -1180,7 +1554,6 @@ export default function BCSPathPlatform() {
     }
   };
 
-  // Auto-Submit Timer for 15-Day 200-MCQ Live Exam
   useEffect(() => {
     if (!isContestRoomActive) return;
     const timer = setInterval(() => {
@@ -1236,6 +1609,7 @@ export default function BCSPathPlatform() {
         confusionBox: "",
         mcqTextContent: "",
         writtenTextContent: "",
+        embeddedImages: {},
       }));
       fetchCloudData();
     } else {
@@ -1254,7 +1628,6 @@ export default function BCSPathPlatform() {
     if (data.success) fetchCloudData();
   };
 
-  // Save Vocabulary Story ("গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি")
   const handleSaveVocabStory = async (e) => {
     e.preventDefault();
     if (!vocabFormData.title || !vocabFormData.storyContent) {
@@ -1273,11 +1646,7 @@ export default function BCSPathPlatform() {
     });
     const data = await res.json();
     if (data.success) {
-      alert(
-        editingVocabId
-          ? "✅ ভোকাবুলারি স্টোরি আপডেট হয়েছে!"
-          : "🎉 নতুন ভোকাবুলারি স্টোরি (ইমেজসহ) পাবলিশ হয়েছে!"
-      );
+      alert(editingVocabId ? "✅ ভোকাবুলারি স্টোরি আপডেট হয়েছে!" : "🎉 নতুন ভোকাবুলারি স্টোরি পাবলিশ হয়েছে!");
       setEditingVocabId(null);
       setVocabFormData((prev) => ({
         storyNo: Number(prev.storyNo) + 1,
@@ -1289,6 +1658,7 @@ export default function BCSPathPlatform() {
         image2Url: "",
         image2Position: "left",
         wordMeaningBox: "",
+        embeddedImages: {},
       }));
       fetchCloudData();
     } else {
@@ -1327,7 +1697,14 @@ export default function BCSPathPlatform() {
     if (data.success) {
       alert("✅ প্রশ্নব্যাংক পাবলিশ হয়েছে!");
       setEditingQbId(null);
-      setQbFormData((prev) => ({ ...prev, title: "", pdfUrl: "", textContent: "", highlightBox: "" }));
+      setQbFormData((prev) => ({
+        ...prev,
+        title: "",
+        pdfUrl: "",
+        textContent: "",
+        highlightBox: "",
+        embeddedImages: {},
+      }));
       fetchCloudData();
     } else {
       alert(data.error);
@@ -1388,7 +1765,6 @@ export default function BCSPathPlatform() {
     }
   };
 
-  // Update 200-Question National Contest Slot
   const update200TemplateSlot = (slotNumber, field, value, optIdx = null) => {
     setTemplate200Questions((prev) =>
       prev.map((item) => {
@@ -1424,7 +1800,7 @@ export default function BCSPathPlatform() {
     });
     const data = await res.json();
     if (data.success) {
-      alert(`🎉 ১৫ দিনের জাতীয় বিসিএস পরীক্ষা (${filledCount}টি প্রশ্নসহ) সফলভাবে প্রকাশিত হয়েছে!`);
+      alert(`🎉 ১০ দিনের জাতীয় বিসিএস পরীক্ষা (${filledCount}টি প্রশ্নসহ) সফলভাবে প্রকাশিত হয়েছে!`);
       setContestBuilderMeta((prev) => ({ ...prev, resetSubmissions: false }));
       fetchCloudData();
     } else {
@@ -1452,6 +1828,7 @@ export default function BCSPathPlatform() {
       confusionBox: lec.confusionBox || "",
       mcqTextContent: lec.mcqTextContent || "",
       writtenTextContent: lec.writtenTextContent || "",
+      embeddedImages: lec.embeddedImages || {},
       mcqTwoColumn: lec.mcqTwoColumn !== undefined ? lec.mcqTwoColumn : true,
       lectureTwoColumn: lec.lectureTwoColumn || false,
       writtenTwoColumn: lec.writtenTwoColumn || false,
@@ -1507,6 +1884,11 @@ export default function BCSPathPlatform() {
     return !!activeLecture.lectureTwoColumn;
   };
 
+  // Current 25-Question Block Subject ID in 200-Q Builder
+  const current25BlockStartNo = Number(active200Range.split("-")[0]);
+  const current25BlockSubjectId =
+    template200Questions.find((q) => q.qNo === current25BlockStartNo)?.subjectId || "bangla";
+
   /**
    * ==========================================================================
    * VIEW 1: PORTAL GATEWAY LANDING PAGE
@@ -1538,16 +1920,16 @@ export default function BCSPathPlatform() {
                 setActivePortal("course_app");
                 setActiveTab("biweekly_contest");
               }}
-              className="hidden sm:inline-flex px-4 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs sm:text-sm font-black items-center gap-1.5 shadow-xs cursor-pointer"
+              className="hidden sm:inline-flex premium-btn px-4 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs sm:text-sm font-black items-center gap-1.5 shadow-xs cursor-pointer"
             >
-              <Trophy className="w-4 h-4" /> ২০০ নম্বরের জাতীয় বিসিএস পরীক্ষা ও লিডারবোর্ড
+              <Trophy className="w-4 h-4" /> ১০ দিনের জাতীয় পরীক্ষা (২০০ MCQ) ও লিডারবোর্ড
             </button>
             <button
               onClick={() => {
                 setActivePortal("course_app");
                 setActiveTab("admin");
               }}
-              className="px-4 py-2 rounded-xl bg-purple-100 text-[#3b0764] hover:bg-purple-200 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition cursor-pointer"
+              className="premium-btn px-4 py-2 rounded-xl bg-purple-100 text-[#3b0764] hover:bg-purple-200 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4" /> অ্যাডমিন প্যানেল
             </button>
@@ -1610,7 +1992,7 @@ export default function BCSPathPlatform() {
               {/* CARD 1: BCS PREPARATION */}
               <div
                 onClick={() => enterCourseDashboard("bcs")}
-                className="group relative rounded-3xl bg-gradient-to-br from-[#2e1065] via-[#3b0764] to-[#1e1b4b] text-white p-7 sm:p-8 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden border border-purple-700/40"
+                className="premium-card group relative rounded-3xl bg-gradient-to-br from-[#2e1065] via-[#3b0764] to-[#1e1b4b] text-white p-7 sm:p-8 shadow-xl cursor-pointer overflow-hidden border border-purple-700/40"
               >
                 <div className="relative z-10 grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
                   <div className="sm:col-span-7 space-y-4">
@@ -1625,10 +2007,10 @@ export default function BCSPathPlatform() {
                         BCS <span className="text-amber-400">Preparation</span>
                       </h3>
                       <p className="text-xs sm:text-sm text-purple-200 mt-2 leading-relaxed">
-                        ১২টি সাবজেক্ট (বাংলা ব্যাকরণ ও English Grammar সহ), গল্পে গল্পে ভোকাবুলারি এবং ২০০ নম্বরের জাতীয় লাইভ পরীক্ষা।
+                        ১২টি সাবজেক্ট (বাংলা ব্যাকরণ ও English Grammar সহ), গল্পে গল্পে ভোকাবুলারি এবং প্রতি ১০ দিনে ২০০ নম্বরের জাতীয় লাইভ পরীক্ষা।
                       </p>
                     </div>
-                    <button className="px-6 py-3 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black text-sm inline-flex items-center gap-2 shadow-lg">
+                    <button className="premium-btn px-6 py-3 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black text-sm inline-flex items-center gap-2 shadow-lg">
                       Go to Dashboard →
                     </button>
                   </div>
@@ -1644,13 +2026,13 @@ export default function BCSPathPlatform() {
                         <div className="text-sm font-black text-[#2e1065]">{bcsCount}টি</div>
                       </div>
                       <div className="bg-emerald-50 p-2 rounded-lg">
-                        <div className="text-[10px] text-slate-500 font-bold">National Exam</div>
+                        <div className="text-[10px] text-slate-500 font-bold">10-Day Exam</div>
                         <div className="text-sm font-black text-emerald-700">২০০ MCQ</div>
                       </div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-50 border text-[11px]">
-                      <div className="font-extrabold text-slate-800">English Grammar & Vocab</div>
-                      <div className="text-[10px] text-purple-700 font-bold">📖 গল্পে গল্পে ভোকাবুলারি</div>
+                      <div className="font-extrabold text-slate-800">১০, ২০ ও ৩০ তারিখে পরীক্ষা</div>
+                      <div className="text-[10px] text-purple-700 font-bold">🏆 সাবজেক্টভিত্তিক দুর্বলতা বিশ্লেষণ</div>
                     </div>
                   </div>
                 </div>
@@ -1659,7 +2041,7 @@ export default function BCSPathPlatform() {
               {/* CARD 2: DEFENSE & POLICE CONSTABLE FOUNDATION */}
               <div
                 onClick={() => enterCourseDashboard("defense")}
-                className="group relative rounded-3xl bg-gradient-to-br from-[#1e1b4b] via-[#31105f] to-[#2e1065] text-white p-7 sm:p-8 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden border border-purple-700/40"
+                className="premium-card group relative rounded-3xl bg-gradient-to-br from-[#1e1b4b] via-[#31105f] to-[#2e1065] text-white p-7 sm:p-8 shadow-xl cursor-pointer overflow-hidden border border-purple-700/40"
               >
                 <div className="relative z-10 grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
                   <div className="sm:col-span-7 space-y-4">
@@ -1678,7 +2060,7 @@ export default function BCSPathPlatform() {
                         টপিকভিত্তিক YouTube Unlisted ভিডিও লেকচার, নোট PDF, রঙিন Text View এবং ৫০ প্রশ্নের মক টেস্ট।
                       </p>
                     </div>
-                    <button className="px-6 py-3 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black text-sm inline-flex items-center gap-2 shadow-lg">
+                    <button className="premium-btn px-6 py-3 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black text-sm inline-flex items-center gap-2 shadow-lg">
                       Go to Dashboard →
                     </button>
                   </div>
@@ -1753,7 +2135,7 @@ export default function BCSPathPlatform() {
                     : "text-amber-700 hover:text-amber-900 font-extrabold"
                 } py-5 flex items-center gap-1 cursor-pointer`}
               >
-                <Trophy className="w-4 h-4 text-amber-600" /> জাতীয় বিসিএস পরীক্ষা (২০০ MCQ)
+                <Trophy className="w-4 h-4 text-amber-600" /> ১০ দিনের জাতীয় পরীক্ষা (২০০)
               </button>
             )}
             <button onClick={() => navigateTo("qbank")} className={`${activeTab === "qbank" ? "text-slate-900 border-b-2 border-slate-900" : "hover:text-slate-900"} py-5 cursor-pointer`}>প্রশ্ন ব্যাংক</button>
@@ -1764,24 +2146,25 @@ export default function BCSPathPlatform() {
 
           <button
             onClick={() => setActivePortal("gateway")}
-            className="px-3.5 py-2 rounded-xl bg-[#2e1065] text-amber-300 hover:bg-[#3b0764] text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition cursor-pointer"
+            className="premium-btn px-3.5 py-2 rounded-xl bg-[#2e1065] text-amber-300 hover:bg-[#3b0764] text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer"
           >
             <LayoutGrid className="w-4 h-4" /> কোর্স পরিবর্তন
           </button>
         </div>
 
-        {/* Mobile Nav */}
+        {/* Mobile Nav (FIXED: Restored "সিলেবাস" right next to "ড্যাশবোর্ড" as requested in Requirement 3!) */}
         <div className="flex lg:hidden overflow-x-auto border-t border-slate-200 bg-white px-4 py-2.5 gap-4 text-xs sm:text-sm font-bold whitespace-nowrap text-slate-700">
           <button onClick={() => setActivePortal("gateway")} className="text-purple-700 font-extrabold">⌂ পোর্টাল</button>
-          <button onClick={() => navigateTo("dashboard")} className={activeTab === "dashboard" ? "text-slate-900 underline" : ""}>ড্যাশবোর্ড</button>
-          <button onClick={() => navigateTo("subject_lectures")} className={activeTab === "subject_lectures" ? "text-slate-900 underline" : ""}>লেকচার</button>
-          <button onClick={() => navigateTo("mock_test_hub")} className={activeTab === "mock_test_hub" ? "text-slate-900 underline" : ""}>মক টেস্ট</button>
+          <button onClick={() => navigateTo("dashboard")} className={activeTab === "dashboard" ? "text-slate-900 underline decoration-2 font-black" : ""}>ড্যাশবোর্ড</button>
+          <button onClick={() => navigateTo("syllabus")} className={activeTab === "syllabus" ? "text-slate-900 underline decoration-2 font-black" : ""}>সিলেবাস</button>
+          <button onClick={() => navigateTo("subject_lectures")} className={activeTab === "subject_lectures" ? "text-slate-900 underline decoration-2 font-black" : ""}>লেকচার</button>
+          <button onClick={() => navigateTo("mock_test_hub")} className={activeTab === "mock_test_hub" ? "text-slate-900 underline decoration-2 font-black" : ""}>মক টেস্ট</button>
           {selectedCourse === "bcs" && (
             <button onClick={() => navigateTo("biweekly_contest")} className="text-amber-700 font-extrabold">
               🏆 জাতীয় পরীক্ষা (২০০)
             </button>
           )}
-          <button onClick={() => navigateTo("qbank")} className={activeTab === "qbank" ? "text-slate-900 underline" : ""}>প্রশ্ন ব্যাংক</button>
+          <button onClick={() => navigateTo("qbank")} className={activeTab === "qbank" ? "text-slate-900 underline decoration-2 font-black" : ""}>প্রশ্ন ব্যাংক</button>
           <button onClick={() => navigateTo("admin")} className="text-blue-600 font-extrabold">অ্যাডমিন</button>
         </div>
       </header>
@@ -1791,7 +2174,7 @@ export default function BCSPathPlatform() {
         <div className="mb-5 flex items-center justify-between">
           <button
             onClick={handleGoBack}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm font-bold shadow-2xs hover:bg-slate-100 transition cursor-pointer"
+            className="premium-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm font-bold shadow-2xs hover:bg-slate-100 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" /> {activeTab === "dashboard" ? "কোর্স পোর্টালে ফিরে যান" : "আগের পেজে ফিরে যান"}
           </button>
@@ -1800,7 +2183,7 @@ export default function BCSPathPlatform() {
           </div>
         </div>
 
-        {/* ================= 1. DASHBOARD (WITH BANGLA GRAMMAR, ENGLISH GRAMMAR & 15-DAY NATIONAL CONTEST BANNER) ================= */}
+        {/* ================= 1. DASHBOARD ================= */}
         {activeTab === "dashboard" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <aside className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
@@ -1813,7 +2196,7 @@ export default function BCSPathPlatform() {
                   )}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shadow"
+                    className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shadow cursor-pointer"
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -1844,15 +2227,14 @@ export default function BCSPathPlatform() {
                 </p>
               </div>
 
-              <button onClick={() => setShowProfileEditModal(true)} className="w-full p-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-left cursor-pointer">
+              <button onClick={() => setShowProfileEditModal(true)} className="premium-btn w-full p-3.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-left cursor-pointer">
                 <span className="text-sm font-bold">প্রোফাইল ও প্রতিষ্ঠান এডিট</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </aside>
 
             <div className="lg:col-span-9 space-y-6">
-              {/* Top Hero Banner + 15-Day 200-MCQ Live Exam CTA */}
-              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-[#1e1b4b] via-[#2e1065] to-slate-900 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-[#1e1b4b] via-[#2e1065] to-slate-900 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
                 <div>
                   <span className="text-xs uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30 px-3 py-1 rounded-full font-extrabold">
                     {selectedCourse === "defense" ? "DEFENSE & POLICE FOUNDATION" : "৪৭তম ও ৪৮তম বিসিএস স্পেশাল"}
@@ -1861,25 +2243,24 @@ export default function BCSPathPlatform() {
                     লেকচার PDF, ২-কলাম Text View ও অধ্যায়ভিত্তিক Test 1 / Test 2
                   </h2>
                   <p className="text-sm text-slate-200 mt-1">
-                    প্রতিটি টেস্টে ৫০টি প্রশ্ন · ৩৬ সেকেন্ড/প্রশ্ন · নেগেটিভ মার্কিং ০.৫০ · পাস মার্ক ৬০%
+                    প্রতি মাসে ৩টি (১০, ২০ ও {nextExamCountdown.thirdExamDay} তারিখ) ২০০ নম্বরের জাতীয় পরীক্ষা · পরবর্তী পরীক্ষা: {nextExamCountdown.days} দিন {nextExamCountdown.hours} ঘণ্টা বাকি
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {selectedCourse === "bcs" && (
                     <button
                       onClick={() => navigateTo("biweekly_contest")}
-                      className="px-5 py-3 bg-emerald-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-emerald-600 flex items-center gap-1.5 cursor-pointer shadow-lg"
+                      className="premium-btn px-5 py-3 bg-emerald-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-emerald-600 flex items-center gap-1.5 cursor-pointer shadow-lg"
                     >
-                      <Trophy className="w-4 h-4" /> ২০০ নম্বরের জাতীয় পরীক্ষা ও লিডারবোর্ড
+                      <Trophy className="w-4 h-4" /> ১০ দিনের জাতীয় পরীক্ষা (২০০)
                     </button>
                   )}
-                  <button onClick={() => navigateTo("mock_test_hub")} className="px-5 py-3 bg-amber-400 text-slate-950 rounded-xl text-xs sm:text-sm font-black hover:bg-amber-300 cursor-pointer">
+                  <button onClick={() => navigateTo("mock_test_hub")} className="premium-btn px-5 py-3 bg-amber-400 text-slate-950 rounded-xl text-xs sm:text-sm font-black hover:bg-amber-300 cursor-pointer">
                     অধ্যায়ভিত্তিক মক টেস্ট দিন →
                   </button>
                 </div>
               </div>
 
-              {/* Subjects Grid (12 Subjects for BCS including Bangla Grammar & English Grammar) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {currentCourseSubjects.map((sub) => {
                   const stats = getSubjectDynamicStats(sub.id);
@@ -1888,8 +2269,8 @@ export default function BCSPathPlatform() {
                     <div
                       key={sub.id}
                       onClick={() => handleSelectSubject(sub.id)}
-                      className={`p-5 rounded-2xl border bg-white cursor-pointer transition hover:shadow-md hover:border-[#2e1065] ${
-                        isEngGrammar ? "border-violet-300 ring-1 ring-violet-200" : "border-slate-200"
+                      className={`premium-card p-5 rounded-2xl border bg-white cursor-pointer ${
+                        isEngGrammar ? "border-violet-300 ring-1 ring-violet-200" : "border-slate-200 hover:border-[#2e1065]"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2 mb-3">
@@ -1938,18 +2319,17 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 2. LECTURE HUB (WITH AUTO-SCROLL + ENGLISH GRAMMAR VOCABULARY STORIES) ================= */}
+        {/* ================= 2. LECTURE HUB (SHORTCODE IMAGE RENDERING + AUTO-SCROLL) ================= */}
         {activeTab === "subject_lectures" && (
           <div className="space-y-6">
             <div className="bg-gradient-to-r from-[#1e1b4b] via-[#2e1065] to-[#3b0764] text-white p-6 rounded-3xl shadow-md flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black">{currentSubject.title} — লেকচার ও পিডিএফ হাব</h2>
                 <p className="text-sm text-purple-200 mt-0.5">
-                  মোট আপলোডকৃত লেকচার: {subjectLectures.length}টি · লেকচারে ক্লিক করলেই অটো-স্ক্রল করে নিচে স্টাডি রিসোর্সে নিয়ে যাবে
+                  মোট আপলোডকৃত লেকচার: {subjectLectures.length}টি · লেকচারে ক্লিক করলেই অটো-স্ক্রল করে স্টাডি রিসোর্সে নিয়ে যাবে
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                {/* Special Button inside English Grammar to switch directly to Story Vocabulary */}
                 {activeSubjectId === "english_grammar" && (
                   <button
                     onClick={() => {
@@ -1959,10 +2339,10 @@ export default function BCSPathPlatform() {
                       }
                       smoothScrollToRef(vocabReaderRef);
                     }}
-                    className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shadow-md cursor-pointer transition ${
+                    className={`premium-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shadow-md cursor-pointer ${
                       activePdfStep === "vocab_story"
                         ? "bg-amber-400 text-slate-950"
-                        : "bg-white/15 text-amber-300 border border-amber-400/40 hover:bg-white/25"
+                        : "bg-white/15 text-amber-300 border border-amber-400/40"
                     }`}
                   >
                     <Sparkles className="w-4 h-4" /> 📖 গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি শিখুন ({vocabStories.length}টি গল্প)
@@ -1988,63 +2368,41 @@ export default function BCSPathPlatform() {
               </div>
             </div>
 
-            {/* IF USER IS IN "গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি শিখুন" MODE */}
             {activeSubjectId === "english_grammar" && activePdfStep === "vocab_story" ? (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left Column: Vocabulary Story List */}
                 <div className="lg:col-span-3 bg-white rounded-2xl border border-violet-200 p-4 space-y-3">
                   <div className="flex items-center justify-between border-b pb-3">
                     <span className="font-extrabold text-base text-violet-950">
-                      📖 ভোকাবুলারি স্টোরি লিস্ট ({vocabStories.length}টি)
+                      📖 স্টোরি লিস্ট ({vocabStories.length}টি)
                     </span>
-                    <button
-                      onClick={() => setActivePdfStep("lecture")}
-                      className="text-xs font-extrabold text-blue-600 hover:underline cursor-pointer"
-                    >
+                    <button onClick={() => setActivePdfStep("lecture")} className="text-xs font-extrabold text-blue-600 hover:underline cursor-pointer">
                       ← লেকচারে ফিরুন
                     </button>
                   </div>
 
-                  {vocabStories.length === 0 ? (
-                    <div className="p-8 text-center bg-violet-50/50 rounded-xl border border-dashed text-sm font-bold text-slate-600">
-                      এখনো কোনো ভোকাবুলারি স্টোরি আপলোড করা হয়নি। অ্যাডমিন প্যানেল থেকে স্টোরি যুক্ত করুন।
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5 max-h-[650px] overflow-y-auto pr-1">
-                      {vocabStories.map((st) => {
-                        const stId = st._id || st.id;
-                        const isSelected = (activeVocabStory?._id || activeVocabStory?.id) === stId;
-                        return (
-                          <div
-                            key={stId}
-                            onClick={() => {
-                              setActiveVocabStory(st);
-                              // Auto-Scroll directly to Story Reader!
-                              smoothScrollToRef(vocabReaderRef);
-                            }}
-                            className={`p-3.5 rounded-xl border cursor-pointer transition ${
-                              isSelected
-                                ? "bg-[#2e1065] text-white border-[#2e1065] shadow-sm"
-                                : "bg-white hover:border-violet-400"
-                            }`}
-                          >
-                            <div className={`text-[11px] font-extrabold ${isSelected ? "text-amber-300" : "text-violet-700"}`}>
-                              Story #{st.storyNo < 10 ? `0${st.storyNo}` : st.storyNo}
-                            </div>
-                            <div className="font-extrabold text-sm mt-0.5">{st.title}</div>
-                            {st.subtitle && (
-                              <div className={`text-xs mt-0.5 truncate ${isSelected ? "text-purple-200" : "text-slate-500"}`}>
-                                {st.subtitle}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {vocabStories.map((st) => {
+                    const stId = st._id || st.id;
+                    const isSelected = (activeVocabStory?._id || activeVocabStory?.id) === stId;
+                    return (
+                      <div
+                        key={stId}
+                        onClick={() => {
+                          setActiveVocabStory(st);
+                          smoothScrollToRef(vocabReaderRef);
+                        }}
+                        className={`premium-card p-3.5 rounded-xl border cursor-pointer ${
+                          isSelected ? "bg-[#2e1065] text-white border-[#2e1065]" : "bg-white hover:border-violet-400"
+                        }`}
+                      >
+                        <div className={`text-[11px] font-extrabold ${isSelected ? "text-amber-300" : "text-violet-700"}`}>
+                          Story #{st.storyNo}
+                        </div>
+                        <div className="font-extrabold text-sm mt-0.5">{st.title}</div>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {/* Right Column: Visual Storybook Reader (Supports 2 Related Images + Colored Text) */}
                 <div ref={vocabReaderRef} className="lg:col-span-9 scroll-mt-20">
                   {!activeVocabStory ? (
                     <div className="bg-white rounded-2xl border p-14 text-center text-slate-600 font-bold">
@@ -2052,29 +2410,8 @@ export default function BCSPathPlatform() {
                     </div>
                   ) : (
                     <div className="bg-white rounded-3xl border-2 border-violet-200 p-6 sm:p-9 shadow-sm space-y-6">
-                      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-violet-100 pb-4">
-                        <div>
-                          <span className="px-3 py-1 rounded-full bg-violet-100 text-violet-900 text-xs font-extrabold">
-                            📖 গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি · Story #{activeVocabStory.storyNo}
-                          </span>
-                          <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
-                            {activeVocabStory.title}
-                          </h3>
-                          {activeVocabStory.subtitle && (
-                            <p className="text-sm font-semibold text-slate-600 mt-1">{activeVocabStory.subtitle}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => setActivePdfStep("lecture")}
-                          className="px-4 py-2 rounded-xl bg-slate-100 text-slate-800 text-xs font-extrabold hover:bg-slate-200 cursor-pointer"
-                        >
-                          ← গ্রামার লেকচারে ফিরে যান
-                        </button>
-                      </div>
-
-                      {/* Storybook Body with Visual Image 1 & Image 2 */}
+                      <h3 className="text-2xl sm:text-3xl font-black text-slate-900">{activeVocabStory.title}</h3>
                       <div className="clearfix text-base sm:text-lg text-slate-900 leading-relaxed font-medium space-y-4">
-                        {/* Story Image 1 */}
                         {activeVocabStory.image1Url && (
                           <img
                             src={activeVocabStory.image1Url}
@@ -2088,17 +2425,19 @@ export default function BCSPathPlatform() {
                             }`}
                           />
                         )}
-
                         <div
                           className="whitespace-pre-line leading-loose"
-                          dangerouslySetInnerHTML={{ __html: activeVocabStory.storyContent }}
+                          dangerouslySetInnerHTML={{
+                            __html: renderContentWithShortcodeImages(
+                              activeVocabStory.storyContent,
+                              activeVocabStory.embeddedImages
+                            ),
+                          }}
                         />
-
-                        {/* Story Image 2 */}
                         {activeVocabStory.image2Url && (
                           <img
                             src={activeVocabStory.image2Url}
-                            alt={`${activeVocabStory.title} illustration 2`}
+                            alt="Story visual 2"
                             className={`rounded-2xl border-4 border-violet-200 shadow-md object-cover ${
                               activeVocabStory.image2Position === "left"
                                 ? "sm:float-left sm:w-72 sm:mr-6 mt-4 mb-4"
@@ -2110,15 +2449,19 @@ export default function BCSPathPlatform() {
                         )}
                       </div>
 
-                      {/* Word Meaning Summary Box */}
                       {activeVocabStory.wordMeaningBox && (
                         <div className="clear-both p-6 rounded-2xl bg-amber-50/80 border-2 border-amber-200 space-y-2 mt-6">
-                          <h4 className="font-extrabold text-base text-amber-950 flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-amber-600" /> এই গল্পের গুরুত্বপূর্ণ Vocabulary ও শব্দের অর্থ:
+                          <h4 className="font-extrabold text-base text-amber-950">
+                            ✨ গুরুত্বপূর্ণ Vocabulary ও শব্দের অর্থ:
                           </h4>
                           <div
                             className="text-sm sm:text-base text-slate-900 whitespace-pre-line font-semibold md:columns-2 md:gap-8"
-                            dangerouslySetInnerHTML={{ __html: activeVocabStory.wordMeaningBox }}
+                            dangerouslySetInnerHTML={{
+                              __html: renderContentWithShortcodeImages(
+                                activeVocabStory.wordMeaningBox,
+                                activeVocabStory.embeddedImages
+                              ),
+                            }}
                           />
                         </div>
                       )}
@@ -2127,59 +2470,50 @@ export default function BCSPathPlatform() {
                 </div>
               </div>
             ) : (
-              /* STANDARD LECTURE HUB (WITH AUTO-SCROLL TO STUDY RESOURCE) */
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {!isSidebarCollapsed && (
                   <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
                     <div className="font-extrabold text-base border-b pb-3">
                       লেকচার তালিকা ({subjectLectures.length}টি)
                     </div>
-                    {subjectLectures.length === 0 ? (
-                      <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed text-sm font-bold text-slate-600">
-                        এই বিষয়ে এখনো কোনো লেকচার আপলোড করা হয়নি।
-                      </div>
-                    ) : (
-                      <div className="space-y-2.5 max-h-[700px] overflow-y-auto pr-1">
-                        {subjectLectures.map((lec) => {
-                          const lecId = lec._id || lec.id;
-                          const isSelected = (activeLecture?._id || activeLecture?.id) === lecId;
-                          const isDone = progressMap[lecId]?.completed;
-                          const num = lec.lectureNo < 10 ? `0${lec.lectureNo}` : lec.lectureNo;
-                          return (
-                            <div
-                              key={lecId}
-                              onClick={() => {
-                                setActiveLecture(lec);
-                                setActivePdfStep(selectedCourse === "defense" ? "video" : "lecture");
-                                setStudentTwoColumnOverride(null);
-                                // Auto-Scroll directly to the Study Resource section!
-                                smoothScrollToRef(studyResourceRef);
-                              }}
-                              className={`p-3.5 rounded-xl border cursor-pointer transition flex items-center justify-between ${
-                                isSelected ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:border-slate-400"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className={`w-8 h-8 rounded-lg text-xs font-extrabold flex items-center justify-center ${isSelected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-900"}`}>
-                                  {num}
-                                </span>
-                                <div>
-                                  <div className="text-sm font-bold leading-snug">Lecture {num}: {lec.title}</div>
-                                  <div className={`text-xs ${isSelected ? "text-slate-300" : "text-slate-500"}`}>
-                                    {isDone ? "✓ সম্পন্ন" : "চলমান"}
-                                  </div>
+                    <div className="space-y-2.5 max-h-[700px] overflow-y-auto pr-1">
+                      {subjectLectures.map((lec) => {
+                        const lecId = lec._id || lec.id;
+                        const isSelected = (activeLecture?._id || activeLecture?.id) === lecId;
+                        const isDone = progressMap[lecId]?.completed;
+                        const num = lec.lectureNo < 10 ? `0${lec.lectureNo}` : lec.lectureNo;
+                        return (
+                          <div
+                            key={lecId}
+                            onClick={() => {
+                              setActiveLecture(lec);
+                              setActivePdfStep(selectedCourse === "defense" ? "video" : "lecture");
+                              setStudentTwoColumnOverride(null);
+                              smoothScrollToRef(studyResourceRef);
+                            }}
+                            className={`premium-card p-3.5 rounded-xl border cursor-pointer flex items-center justify-between ${
+                              isSelected ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:border-slate-400"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className={`w-8 h-8 rounded-lg text-xs font-extrabold flex items-center justify-center ${isSelected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-900"}`}>
+                                {num}
+                              </span>
+                              <div>
+                                <div className="text-sm font-bold leading-snug">Lecture {num}: {lec.title}</div>
+                                <div className={`text-xs ${isSelected ? "text-slate-300" : "text-slate-500"}`}>
+                                  {isDone ? "✓ সম্পন্ন" : "চলমান"}
                                 </div>
                               </div>
-                              <CheckCircle2 className={`w-5 h-5 shrink-0 ${isDone ? "text-emerald-500" : "text-slate-300"}`} />
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            <CheckCircle2 className={`w-5 h-5 shrink-0 ${isDone ? "text-emerald-500" : "text-slate-300"}`} />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
-                {/* RIGHT STUDY RESOURCE VIEWER (TARGET OF AUTO-SCROLL) */}
                 <div
                   ref={studyResourceRef}
                   className={`${isSidebarCollapsed ? "lg:col-span-12" : "lg:col-span-9"} space-y-6 scroll-mt-20`}
@@ -2224,11 +2558,7 @@ export default function BCSPathPlatform() {
                             {contentViewMode === "text" && (
                               <button
                                 onClick={() => setStudentTwoColumnOverride(!isCurrentTextTwoColumn())}
-                                className={`px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer ${
-                                  isCurrentTextTwoColumn()
-                                    ? "bg-emerald-600 text-white border-emerald-600"
-                                    : "bg-white text-slate-800 border-slate-300"
-                                }`}
+                                className="px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer bg-white"
                               >
                                 <Columns className="w-4 h-4" />
                                 {isCurrentTextTwoColumn() ? "২-কলাম ভিউ (চালু)" : "২-কলামে দেখুন"}
@@ -2238,7 +2568,7 @@ export default function BCSPathPlatform() {
                             {contentViewMode === "pdf" && (
                               <button
                                 onClick={() => setIsPdfFullscreen(true)}
-                                className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm font-bold hover:bg-slate-100 flex items-center gap-1.5 cursor-pointer"
+                                className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer"
                               >
                                 <Maximize2 className="w-4 h-4" /> ফুলস্ক্রিন ভিউ
                               </button>
@@ -2247,33 +2577,13 @@ export default function BCSPathPlatform() {
                         )}
                       </div>
 
-                      {/* Resource Tabs (Includes 4th Tab for English Grammar: Story Vocabulary) */}
-                      <div
-                        className={`grid grid-cols-1 ${
-                          activeSubjectId === "english_grammar" ? "sm:grid-cols-4" : "sm:grid-cols-3"
-                        } gap-3.5`}
-                      >
-                        {selectedCourse === "defense" && (
-                          <button
-                            onClick={() => setActivePdfStep("video")}
-                            className={`p-4 rounded-xl border text-left transition flex items-center gap-3 cursor-pointer ${
-                              activePdfStep === "video" ? "bg-[#2e1065] text-white border-[#2e1065]" : "bg-slate-50 text-slate-900"
-                            }`}
-                          >
-                            <PlayCircle className="w-5 h-5 shrink-0 text-amber-400" />
-                            <div>
-                              <div className="text-sm font-extrabold">ভিডিও লেকচার</div>
-                              <div className="text-xs opacity-80">YouTube Unlisted</div>
-                            </div>
-                          </button>
-                        )}
-
+                      <div className={`grid grid-cols-1 ${activeSubjectId === "english_grammar" ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3.5`}>
                         <button
                           onClick={() => {
                             setActivePdfStep("lecture");
                             setStudentTwoColumnOverride(null);
                           }}
-                          className={`p-4 rounded-xl border text-left transition flex items-center gap-3 cursor-pointer ${
+                          className={`premium-btn p-4 rounded-xl border text-left flex items-center gap-3 cursor-pointer ${
                             activePdfStep === "lecture" ? "bg-blue-600 text-white border-blue-600" : "bg-slate-50 text-slate-900"
                           }`}
                         >
@@ -2289,7 +2599,7 @@ export default function BCSPathPlatform() {
                             setActivePdfStep("mcq_pdf");
                             setStudentTwoColumnOverride(null);
                           }}
-                          className={`p-4 rounded-xl border text-left transition flex items-center gap-3 cursor-pointer ${
+                          className={`premium-btn p-4 rounded-xl border text-left flex items-center gap-3 cursor-pointer ${
                             activePdfStep === "mcq_pdf" ? "bg-emerald-600 text-white border-emerald-600" : "bg-slate-50 text-slate-900"
                           }`}
                         >
@@ -2306,7 +2616,7 @@ export default function BCSPathPlatform() {
                               setActivePdfStep("written_pdf");
                               setStudentTwoColumnOverride(null);
                             }}
-                            className={`p-4 rounded-xl border text-left transition flex items-center gap-3 cursor-pointer ${
+                            className={`premium-btn p-4 rounded-xl border text-left flex items-center gap-3 cursor-pointer ${
                               activePdfStep === "written_pdf" ? "bg-purple-600 text-white border-purple-600" : "bg-slate-50 text-slate-900"
                             }`}
                           >
@@ -2318,7 +2628,6 @@ export default function BCSPathPlatform() {
                           </button>
                         )}
 
-                        {/* 4th Tab exclusively inside English Grammar */}
                         {activeSubjectId === "english_grammar" && (
                           <button
                             onClick={() => {
@@ -2327,7 +2636,7 @@ export default function BCSPathPlatform() {
                                 setActiveVocabStory(vocabStories[0]);
                               }
                             }}
-                            className="p-4 rounded-xl border-2 border-violet-400 bg-violet-50 hover:bg-violet-100 text-violet-950 text-left transition flex items-center gap-3 cursor-pointer"
+                            className="premium-btn p-4 rounded-xl border-2 border-violet-400 bg-violet-50 text-violet-950 text-left flex items-center gap-3 cursor-pointer"
                           >
                             <Sparkles className="w-5 h-5 shrink-0 text-violet-700" />
                             <div>
@@ -2339,42 +2648,26 @@ export default function BCSPathPlatform() {
                       </div>
 
                       {/* CONTENT VIEWPORT */}
-                      {activePdfStep === "video" && (
-                        <div>
-                          {activeLecture.videoUrl ? (
-                            <div className="rounded-2xl overflow-hidden border-2 border-[#2e1065] bg-black aspect-video">
-                              <iframe src={getYoutubeEmbedUrl(activeLecture.videoUrl)} className="w-full h-full border-0" allowFullScreen title="Video" />
-                            </div>
-                          ) : (
-                            <div className="p-10 rounded-2xl border border-dashed text-center bg-slate-50 font-bold text-slate-600">
-                              ভিডিও লিংক দেওয়া হয়নি। পাশের PDF বা Text View দেখুন।
-                            </div>
-                          )}
-                        </div>
-                      )}
-
                       {activePdfStep === "lecture" && (
                         <div>
                           {contentViewMode === "pdf" && activeLecture.lecturePdfUrl ? (
                             <div className="rounded-2xl overflow-hidden border-2 border-slate-800 bg-slate-900">
-                              <div className="bg-slate-900 text-white px-5 py-3 text-sm font-bold flex justify-between items-center">
-                                <span>📄 মূল লেকচার PDF — {activeLecture.title}</span>
-                                <button onClick={() => setIsPdfFullscreen(true)} className="px-3 py-1 bg-white text-slate-900 rounded-lg text-xs font-extrabold">
-                                  ⛶ ফুলস্ক্রিন
-                                </button>
-                              </div>
                               <div className="relative w-full h-[760px] bg-white">
-                                <div className="absolute top-0 right-4 w-36 h-12 z-20 bg-transparent" />
                                 <iframe src={formatSecurePdfUrl(activeLecture.lecturePdfUrl)} className="w-full h-full border-0" title="Lecture PDF" />
                               </div>
                             </div>
                           ) : activeLecture.mainContent ? (
-                            <div className="p-6 sm:p-8 rounded-2xl bg-white border border-blue-200 shadow-2xs space-y-5 clearfix">
+                            <div className="p-6 sm:p-8 rounded-2xl bg-white border border-blue-200 shadow-2xs clearfix">
                               <div
                                 className={`text-base text-slate-900 leading-relaxed whitespace-pre-line font-medium ${
                                   isCurrentTextTwoColumn() ? "md:columns-2 md:gap-8 [column-rule:1px_solid_#e2e8f0]" : ""
                                 }`}
-                                dangerouslySetInnerHTML={{ __html: activeLecture.mainContent }}
+                                dangerouslySetInnerHTML={{
+                                  __html: renderContentWithShortcodeImages(
+                                    activeLecture.mainContent,
+                                    activeLecture.embeddedImages
+                                  ),
+                                }}
                               />
                             </div>
                           ) : (
@@ -2389,24 +2682,22 @@ export default function BCSPathPlatform() {
                         <div>
                           {contentViewMode === "pdf" && activeLecture.mcqPdfUrl ? (
                             <div className="rounded-2xl overflow-hidden border-2 border-emerald-900 bg-slate-900">
-                              <div className="bg-emerald-900 text-white px-5 py-3 text-sm font-bold flex justify-between items-center">
-                                <span>📑 এই Chapter-এর সকল MCQ (PDF View)</span>
-                                <button onClick={() => setIsPdfFullscreen(true)} className="px-3 py-1 bg-white text-slate-900 rounded-lg text-xs font-extrabold">
-                                  ⛶ ফুলস্ক্রিন
-                                </button>
-                              </div>
                               <div className="relative w-full h-[760px] bg-white">
-                                <div className="absolute top-0 right-4 w-36 h-12 z-20 bg-transparent" />
                                 <iframe src={formatSecurePdfUrl(activeLecture.mcqPdfUrl)} className="w-full h-full border-0" title="MCQ PDF" />
                               </div>
                             </div>
                           ) : activeLecture.mcqTextContent ? (
-                            <div className="p-6 sm:p-8 rounded-2xl bg-emerald-50/40 border border-emerald-200 space-y-4 clearfix">
+                            <div className="p-6 sm:p-8 rounded-2xl bg-emerald-50/40 border border-emerald-200 clearfix">
                               <div
                                 className={`text-base text-slate-900 leading-relaxed whitespace-pre-line font-medium ${
                                   isCurrentTextTwoColumn() ? "md:columns-2 md:gap-10 [column-rule:1px_solid_#a7f3d0]" : ""
                                 }`}
-                                dangerouslySetInnerHTML={{ __html: activeLecture.mcqTextContent }}
+                                dangerouslySetInnerHTML={{
+                                  __html: renderContentWithShortcodeImages(
+                                    activeLecture.mcqTextContent,
+                                    activeLecture.embeddedImages
+                                  ),
+                                }}
                               />
                             </div>
                           ) : (
@@ -2421,24 +2712,22 @@ export default function BCSPathPlatform() {
                         <div>
                           {contentViewMode === "pdf" && activeLecture.writtenPdfUrl ? (
                             <div className="rounded-2xl overflow-hidden border-2 border-purple-900 bg-slate-900">
-                              <div className="bg-purple-900 text-white px-5 py-3 text-sm font-bold flex justify-between items-center">
-                                <span>✍️ লিখিত প্রশ্ন ও উত্তর (PDF View)</span>
-                                <button onClick={() => setIsPdfFullscreen(true)} className="px-3 py-1 bg-white text-slate-900 rounded-lg text-xs font-extrabold">
-                                  ⛶ ফুলস্ক্রিন
-                                </button>
-                              </div>
                               <div className="relative w-full h-[760px] bg-white">
-                                <div className="absolute top-0 right-4 w-36 h-12 z-20 bg-transparent" />
                                 <iframe src={formatSecurePdfUrl(activeLecture.writtenPdfUrl)} className="w-full h-full border-0" title="Written PDF" />
                               </div>
                             </div>
                           ) : activeLecture.writtenTextContent ? (
-                            <div className="p-6 sm:p-8 rounded-2xl bg-purple-50/40 border border-purple-200 space-y-4 clearfix">
+                            <div className="p-6 sm:p-8 rounded-2xl bg-purple-50/40 border border-purple-200 clearfix">
                               <div
                                 className={`text-base text-slate-900 leading-relaxed whitespace-pre-line font-medium ${
                                   isCurrentTextTwoColumn() ? "md:columns-2 md:gap-10 [column-rule:1px_solid_#ddd6fe]" : ""
                                 }`}
-                                dangerouslySetInnerHTML={{ __html: activeLecture.writtenTextContent }}
+                                dangerouslySetInnerHTML={{
+                                  __html: renderContentWithShortcodeImages(
+                                    activeLecture.writtenTextContent,
+                                    activeLecture.embeddedImages
+                                  ),
+                                }}
                               />
                             </div>
                           ) : (
@@ -2453,20 +2742,13 @@ export default function BCSPathPlatform() {
                       <div className="p-6 rounded-2xl bg-slate-900 text-white space-y-5">
                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-700 pb-5">
                           <div>
-                            <span className="text-xs uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30 px-3 py-1 rounded-full font-extrabold">
-                              অনলাইন পরীক্ষা · ৩৬ সেকেন্ড/প্রশ্ন · পাস মার্ক ৬০% · নেগেটিভ ০.৫০
-                            </span>
-                            <h4 className="font-extrabold text-lg mt-2">
+                            <h4 className="font-extrabold text-lg">
                               এই অধ্যায়ের অনলাইন MCQ পরীক্ষায় অংশ নিন (Test 1 ও Test 2)
                             </h4>
                           </div>
-
                           <div className="flex flex-wrap gap-3">
                             {test1Set ? (
-                              <button
-                                onClick={() => launchSpecificExamSet(test1Set)}
-                                className="px-5 py-3 bg-emerald-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-emerald-600 cursor-pointer shadow-lg"
-                              >
+                              <button onClick={() => launchSpecificExamSet(test1Set)} className="premium-btn px-5 py-3 bg-emerald-500 text-white rounded-xl text-xs sm:text-sm font-black cursor-pointer">
                                 🎯 পরীক্ষা দিন: Test 1 ({test1Set.questions.length}টি প্রশ্ন) →
                               </button>
                             ) : (
@@ -2474,12 +2756,8 @@ export default function BCSPathPlatform() {
                                 Test 1 (প্রশ্ন সেট করা হয়নি)
                               </span>
                             )}
-
                             {test2Set ? (
-                              <button
-                                onClick={() => launchSpecificExamSet(test2Set)}
-                                className="px-5 py-3 bg-amber-400 text-slate-950 rounded-xl text-xs sm:text-sm font-black hover:bg-amber-300 cursor-pointer shadow-lg"
-                              >
+                              <button onClick={() => launchSpecificExamSet(test2Set)} className="premium-btn px-5 py-3 bg-amber-400 text-slate-950 rounded-xl text-xs sm:text-sm font-black cursor-pointer">
                                 🎯 পরীক্ষা দিন: Test 2 ({test2Set.questions.length}টি প্রশ্ন) →
                               </button>
                             ) : (
@@ -2489,16 +2767,12 @@ export default function BCSPathPlatform() {
                             )}
                           </div>
                         </div>
-
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                           <div className="text-xs sm:text-sm text-slate-300">
-                            পরীক্ষা দিয়ে অথবা পরীক্ষা না দিয়েও আপনি সরাসরি পরবর্তী লেকচারে যেতে পারবেন:
+                            পরীক্ষা দিয়ে অথবা পরীক্ষা না দিয়েও সরাসরি পরবর্তী লেকচারে যেতে পারবেন:
                           </div>
-                          <button
-                            onClick={() => completeAndGoToNextLecture(activeLecture, subjectLectures)}
-                            className="px-5 py-3 bg-blue-600 text-white rounded-xl text-xs sm:text-sm font-extrabold hover:bg-blue-500 flex items-center gap-2 cursor-pointer"
-                          >
-                            <CheckSquare className="w-4 h-4" /> পরবর্তী লেকচারে যান (Next Lecture) →
+                          <button onClick={() => completeAndGoToNextLecture(activeLecture, subjectLectures)} className="premium-btn px-5 py-3 bg-blue-600 text-white rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-2 cursor-pointer">
+                            <CheckSquare className="w-4 h-4" /> পরবর্তী লেকচারে যান →
                           </button>
                         </div>
                       </div>
@@ -2510,51 +2784,80 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 3. 15-DAY NATIONAL 200-MCQ COMBINED BCS LIVE EXAM & LEADERBOARD ================= */}
+        {/* ================= 3. 10-DAY NATIONAL 200-MCQ COMBINED BCS LIVE EXAM & LEADERBOARD ================= */}
         {activeTab === "biweekly_contest" && (
           <div className="space-y-6">
-            {/* Contest Hero Banner */}
-            <div className="bg-gradient-to-r from-[#1e1b4b] via-[#2e1065] to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-2">
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black uppercase">
-                  <Flame className="w-4 h-4" /> প্রতি ১৫ দিনে ১টি জাতীয় বিসিএস লাইভ পরীক্ষা · সবার জন্য উন্মুক্ত
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-black">
-                  {currentActiveContest?.title || "বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড প্রিলিমিনারি পরীক্ষা (২০০ এমসিকিউ)"}
-                </h2>
-                <p className="text-xs sm:text-sm text-purple-200">
-                  মোট প্রশ্ন: {currentActiveContest?.questions?.length || 200}টি · প্রতি প্রশ্নে ৩৬ সেকেন্ড · পাস মার্ক: ৬০% · নেগেটিভ মার্কিং: ০.৫০ · ১ বারই অংশ নেওয়া যাবে (No Re-Exam)
-                </p>
+            {/* Contest Hero Banner with Live 10-Day Countdown (Days, Hours, Minutes, Seconds) */}
+            <div className="bg-gradient-to-r from-[#1e1b4b] via-[#2e1065] to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black uppercase">
+                    <Calendar className="w-4 h-4" /> প্রতি ১০ দিনে ১টি জাতীয় প্রিলিমিনারি টেস্ট (মাসে ৩টি: ১০, ২০ ও {nextExamCountdown.thirdExamDay} তারিখ)
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black">
+                    {currentActiveContest?.title || "৪৭তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড পরীক্ষা (২০০ এমসিকিউ)"}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-purple-200">
+                    মোট প্রশ্ন: {currentActiveContest?.questions?.length || 200}টি · প্রতি প্রশ্নে ৩৬ সেকেন্ড · পাস মার্ক: ৬০% · নেগেটিভ: ০.৫০ · পরবর্তী পরীক্ষা সাবমিট করার আগ পর্যন্ত আপনার পজিশন লিডারবোর্ডে অটুট থাকবে।
+                  </p>
+                </div>
+
+                {/* Live Decreasing Countdown Timer Box */}
+                <div className="bg-white/10 border border-white/20 rounded-2xl p-4 text-center shrink-0 w-full lg:w-auto">
+                  <div className="text-[11px] font-extrabold text-amber-300 uppercase mb-2">
+                    ⏳ পরবর্তী নির্ধারিত পরীক্ষা ({nextExamCountdown.scheduleLabel}) শুরু/শেষ হতে বাকি:
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="bg-slate-950/80 px-3 py-2 rounded-xl border border-purple-500/30">
+                      <div className="text-xl sm:text-2xl font-black text-amber-400">{nextExamCountdown.days}</div>
+                      <div className="text-[10px] font-bold text-purple-200">দিন</div>
+                    </div>
+                    <div className="bg-slate-950/80 px-3 py-2 rounded-xl border border-purple-500/30">
+                      <div className="text-xl sm:text-2xl font-black text-amber-400">{nextExamCountdown.hours}</div>
+                      <div className="text-[10px] font-bold text-purple-200">ঘণ্টা</div>
+                    </div>
+                    <div className="bg-slate-950/80 px-3 py-2 rounded-xl border border-purple-500/30">
+                      <div className="text-xl sm:text-2xl font-black text-amber-400">{nextExamCountdown.minutes}</div>
+                      <div className="text-[10px] font-bold text-purple-200">মিনিট</div>
+                    </div>
+                    <div className="bg-slate-950/80 px-3 py-2 rounded-xl border border-purple-500/30">
+                      <div className="text-xl sm:text-2xl font-black text-emerald-400">{nextExamCountdown.seconds}</div>
+                      <div className="text-[10px] font-bold text-purple-200">সেকেন্ড</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {!isContestRoomActive && (
-                <div>
+                <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/15">
+                  <div className="text-xs sm:text-sm text-purple-200 font-semibold">
+                    পরীক্ষায় অংশ নিতে নিচের রেজিস্ট্রেশন বাটনে ক্লিক করে নাম, মোবাইল নম্বর ও শিক্ষাপ্রতিষ্ঠান দিয়ে রেজিস্টার করুন:
+                  </div>
                   {myContestSubmission ? (
-                    <div className="bg-emerald-500/20 border border-emerald-400/40 px-5 py-3 rounded-2xl text-center">
-                      <div className="text-xs font-bold text-emerald-300">আপনি পরীক্ষায় অংশ নিয়েছেন</div>
-                      <div className="text-xl font-black text-white mt-0.5">
-                        মেরিট পজিশন: #{myLeaderboardRank} / {sortedLeaderboard.length}
-                      </div>
+                    <div className="bg-emerald-500/20 border border-emerald-400/40 px-5 py-2.5 rounded-2xl text-center">
+                      <span className="text-sm font-black text-white">
+                        ✓ আপনি অংশ নিয়েছেন · আপনার বর্তমান মেরিট পজিশন: #{myLeaderboardRank} / {sortedLeaderboard.length}
+                      </span>
                     </div>
                   ) : (
                     <button
-                      onClick={startBiWeekly200Contest}
-                      className="px-7 py-4 bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 rounded-2xl text-sm sm:text-base font-black hover:scale-105 transition shadow-xl cursor-pointer whitespace-nowrap"
+                      onClick={handleOpenRegistrationOrStartExam}
+                      className="premium-btn px-7 py-3.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 rounded-2xl text-sm sm:text-base font-black flex items-center gap-2 shadow-xl cursor-pointer"
                     >
-                      🚀 এখনই পরীক্ষায় অংশ নিন →
+                      <UserPlus className="w-5 h-5" /> রেজিস্ট্রেশন করুন ও পরীক্ষায় অংশ নিন →
                     </button>
                   )}
                 </div>
               )}
             </div>
 
-            {/* IF STUDENT IS CURRENTLY TAKING THE 200-MCQ LIVE CONTEST */}
+            {/* ACTIVE 200-MCQ EXAM PAPER UI */}
             {isContestRoomActive && currentActiveContest ? (
               <div className="space-y-6">
                 <div className="bg-white p-5 rounded-2xl border-2 border-slate-900 sticky top-16 z-30 flex flex-wrap items-center justify-between gap-4 shadow-md">
                   <div>
-                    <div className="text-xs font-extrabold text-rose-600 uppercase">
-                      ⚠️ সতর্কতা: সময় শেষ হলে অটো-সাবমিট হয়ে যাবে · পুনরায় পরীক্ষা দেওয়া যাবে না
+                    <div className="text-xs font-extrabold text-emerald-700">
+                      পরীক্ষার্থী: {profile.name} · প্রতিষ্ঠান: {profile.institution}
                     </div>
                     <div className="font-extrabold text-lg text-slate-900">
                       উত্তর দিয়েছেন: {Object.keys(contestAnswers).length} / {currentActiveContest.questions.length}টি
@@ -2567,7 +2870,7 @@ export default function BCSPathPlatform() {
                     <button
                       onClick={submitBiWeeklyContestExam}
                       disabled={contestSubmitting}
-                      className="px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-black hover:bg-black cursor-pointer"
+                      className="premium-btn px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-black hover:bg-black cursor-pointer"
                     >
                       {contestSubmitting ? "সাবমিট হচ্ছে..." : "খাতা জমা দিন"}
                     </button>
@@ -2578,14 +2881,16 @@ export default function BCSPathPlatform() {
                   {currentActiveContest.questions.map((q, idx) => {
                     const qKey = q.qNo || idx + 1;
                     const selectedOpt = contestAnswers[qKey];
+                    const subTitle =
+                      bcsSubjects.find((s) => s.id === q.subjectId)?.title || "সাধারণ বিষয়";
                     return (
                       <div key={qKey} className="bg-white p-6 rounded-2xl border border-slate-200">
                         <div className="flex justify-between items-start gap-2 mb-3">
                           <h3 className="font-extrabold text-base sm:text-lg">
                             {qKey}. {q.question}
                           </h3>
-                          <span className="px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-bold shrink-0">
-                            {q.category === "english" ? "English" : q.category === "math" ? "Math" : "General"}
+                          <span className="px-2.5 py-1 rounded-full bg-purple-50 text-[#2e1065] text-xs font-extrabold shrink-0">
+                            {subTitle}
                           </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2593,7 +2898,7 @@ export default function BCSPathPlatform() {
                             <button
                               key={optIdx}
                               onClick={() => setContestAnswers({ ...contestAnswers, [qKey]: optIdx })}
-                              className={`p-3.5 rounded-xl border text-left text-sm font-semibold cursor-pointer ${
+                              className={`p-3.5 rounded-xl border text-left text-sm font-semibold cursor-pointer transition ${
                                 selectedOpt === optIdx
                                   ? "bg-slate-900 text-white border-slate-900 font-extrabold"
                                   : "bg-white border-slate-300 hover:border-slate-900"
@@ -2609,9 +2914,9 @@ export default function BCSPathPlatform() {
                 </div>
               </div>
             ) : (
-              /* LEADERBOARD & PERSONAL RESULT + WRONG ANSWER EXPLANATIONS */
+              /* LEADERBOARD + SUBJECT-WISE MARKS & WEAKNESS ANALYTICS */
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left/Center: National Merit Leaderboard (7 Cols) */}
+                {/* Left Column: National Merit Leaderboard (7 Cols) */}
                 <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-5">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4">
                     <div>
@@ -2619,7 +2924,7 @@ export default function BCSPathPlatform() {
                         <Trophy className="w-6 h-6 text-amber-500" /> জাতীয় মেধা তালিকা (Live Leaderboard)
                       </h3>
                       <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                        টাই-ব্রেকার নিয়ম: সমান নম্বর পেলে প্রথমে English-এ এগিয়ে থাকা শিক্ষার্থী, তাও সমান হলে Math-এ এগিয়ে থাকা শিক্ষার্থী আগে স্থান পাবে।
+                        পরবর্তী পরীক্ষা সাবমিট করার আগ পর্যন্ত সকল শিক্ষার্থীর মধ্যে আপনার এই মেরিট পজিশন স্থায়ী থাকবে।
                       </p>
                     </div>
                     <span className="px-3 py-1 rounded-full bg-purple-100 text-[#2e1065] text-xs font-extrabold">
@@ -2629,10 +2934,10 @@ export default function BCSPathPlatform() {
 
                   {sortedLeaderboard.length === 0 ? (
                     <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed text-slate-600 font-bold">
-                      এখনো কেউ এই পর্বের পরীক্ষায় খাতা জমা দেয়নি। প্রথম স্থান অর্জন করতে এখনই পরীক্ষায় অংশ নিন!
+                      এখনো কেউ এই পর্বের পরীক্ষায় খাতা জমা দেয়নি। রেজিস্ট্রেশন করে প্রথম স্থান অর্জন করুন!
                     </div>
                   ) : (
-                    <div className="space-y-3 max-h-[700px] overflow-y-auto pr-1">
+                    <div className="space-y-3.5 max-h-[750px] overflow-y-auto pr-1">
                       {sortedLeaderboard.map((sub, index) => {
                         const rank = index + 1;
                         const isMe = sub.studentKey === studentUniqueKey;
@@ -2642,8 +2947,8 @@ export default function BCSPathPlatform() {
 
                         return (
                           <div
-                            key={ index }
-                            className={`p-4 rounded-2xl border flex items-center justify-between gap-3 transition ${
+                            key={index}
+                            className={`p-4 rounded-2xl border transition space-y-3 ${
                               isMe
                                 ? "bg-amber-50/80 border-2 border-amber-400 shadow-xs"
                                 : rank <= 3
@@ -2651,64 +2956,86 @@ export default function BCSPathPlatform() {
                                 : "bg-white border-slate-200"
                             }`}
                           >
-                            <div className="flex items-center gap-3.5">
-                              {/* Position / Rank Badge */}
-                              <div
-                                className={`w-9 h-9 rounded-xl font-black text-sm flex items-center justify-center shrink-0 ${
-                                  rank === 1
-                                    ? "bg-amber-400 text-slate-950"
-                                    : rank === 2
-                                    ? "bg-slate-300 text-slate-900"
-                                    : rank === 3
-                                    ? "bg-amber-700 text-white"
-                                    : "bg-slate-100 text-slate-700"
-                                }`}
-                              >
-                                #{rank}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3.5">
+                                <div
+                                  className={`w-9 h-9 rounded-xl font-black text-sm flex items-center justify-center shrink-0 ${
+                                    rank === 1
+                                      ? "bg-amber-400 text-slate-950"
+                                      : rank === 2
+                                      ? "bg-slate-300 text-slate-900"
+                                      : rank === 3
+                                      ? "bg-amber-700 text-white"
+                                      : "bg-slate-100 text-slate-700"
+                                  }`}
+                                >
+                                  #{rank}
+                                </div>
+
+                                {sub.avatarUrl ? (
+                                  <img
+                                    src={sub.avatarUrl}
+                                    alt={sub.name}
+                                    className="w-11 h-11 rounded-full object-cover border-2 border-purple-300 shrink-0"
+                                  />
+                                ) : (
+                                  <MiniExecutive2DAvatar size="w-11 h-11" />
+                                )}
+
+                                <div>
+                                  <div className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+                                    <span>{sub.name}</span>
+                                    {isMe && (
+                                      <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-black">
+                                        আপনি (Position #{rank})
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                                    <Building2 className="w-3 h-3" />
+                                    <span>{sub.institution || "বিসিএস পরীক্ষার্থী"}</span>
+                                  </div>
+                                </div>
                               </div>
 
-                              {/* Student Photo or Default 2D Executive Avatar */}
-                              {sub.avatarUrl ? (
-                                <img
-                                  src={sub.avatarUrl}
-                                  alt={sub.name}
-                                  className="w-11 h-11 rounded-full object-cover border-2 border-purple-300 shrink-0"
-                                />
-                              ) : (
-                                <MiniExecutive2DAvatar size="w-11 h-11" />
-                              )}
+                              <div className="text-right shrink-0">
+                                <div className="text-lg font-black text-[#2e1065]">
+                                  {sub.totalScore} <span className="text-xs font-bold text-slate-400">/ {totalQ}</span>
+                                </div>
+                                <div className="text-[10px] font-bold text-slate-500">
+                                  Eng: {sub.englishScore || 0} · Math: {sub.mathScore || 0}
+                                </div>
+                                <span
+                                  className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                    passed ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                                  }`}
+                                >
+                                  {passed ? "PASSED (60%+)" : "BELOW 60%"}
+                                </span>
+                              </div>
+                            </div>
 
-                              <div>
-                                <div className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
-                                  <span>{sub.name}</span>
-                                  {isMe && (
-                                    <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-black">
-                                      আপনি
+                            {/* Show Subject-wise Marks & Weakness Badges on Leaderboard Card (Requirement 6) */}
+                            {sub.subjectBreakdown && Object.keys(sub.subjectBreakdown).length > 0 && (
+                              <div className="pt-2 border-t border-slate-200/80 space-y-1.5">
+                                <div className="flex flex-wrap gap-1.5">
+                                  {Object.values(sub.subjectBreakdown).map((st, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 text-[10px] font-bold border border-slate-200"
+                                    >
+                                      {st.title}: <strong>{st.marks}</strong>/{st.total} (✗ ভুল: {st.wrong})
                                     </span>
-                                  )}
+                                  ))}
                                 </div>
-                                <div className="text-xs text-slate-500 font-semibold flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  <span>{sub.institution || "বিসিএস পরীক্ষার্থী"}</span>
-                                </div>
+                                {sub.weakSubjects?.length > 0 && (
+                                  <div className="text-[11px] font-extrabold text-rose-700 flex items-center gap-1">
+                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                    <span>দুর্বলতা (Needs Focus): {sub.weakSubjects.join(", ")}</span>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-
-                            <div className="text-right shrink-0">
-                              <div className="text-lg font-black text-[#2e1065]">
-                                {sub.totalScore} <span className="text-xs font-bold text-slate-400">/ {totalQ}</span>
-                              </div>
-                              <div className="text-[10px] font-bold text-slate-500">
-                                Eng: {sub.englishScore || 0} · Math: {sub.mathScore || 0}
-                              </div>
-                              <span
-                                className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                                  passed ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                                }`}
-                              >
-                                {passed ? "PASSED (60%+)" : "BELOW 60%"}
-                              </span>
-                            </div>
+                            )}
                           </div>
                         );
                       })}
@@ -2716,10 +3043,10 @@ export default function BCSPathPlatform() {
                   )}
                 </div>
 
-                {/* Right Column: Student's Own Answer Sheet & Wrong Answer Explanations (5 Cols) */}
+                {/* Right Column: Personal Subject-wise Weakness Diagnostic & Wrong Explanations (5 Cols) */}
                 <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-5">
-                  <h3 className="text-lg font-black text-slate-900 border-b pb-3">
-                    📋 আপনার ফলাফল ও ভুল উত্তরের ব্যাখ্যা
+                  <h3 className="text-lg font-black text-slate-900 border-b pb-3 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-purple-700" /> আপনার বিষয়ভিত্তিক বিশ্লেষণ ও ভুল উত্তরের ব্যাখ্যা
                   </h3>
 
                   {!myContestSubmission ? (
@@ -2728,30 +3055,68 @@ export default function BCSPathPlatform() {
                         আপনি এখনো এই পর্বের পরীক্ষায় অংশগ্রহণ করেননি।
                       </p>
                       <button
-                        onClick={startBiWeekly200Contest}
-                        className="px-5 py-2.5 bg-[#2e1065] text-white rounded-xl text-xs font-extrabold cursor-pointer"
+                        onClick={handleOpenRegistrationOrStartExam}
+                        className="premium-btn px-5 py-2.5 bg-[#2e1065] text-white rounded-xl text-xs font-extrabold cursor-pointer"
                       >
-                        পরীক্ষা শুরু করুন →
+                        রেজিস্ট্রেশন ও পরীক্ষা শুরু করুন →
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       <div className="grid grid-cols-3 gap-2.5 text-center">
                         <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
                           <div className="text-[11px] font-bold text-emerald-800">সঠিক উত্তর</div>
                           <div className="text-xl font-black text-emerald-700">{myContestSubmission.correctCount}</div>
                         </div>
                         <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
-                          <div className="text-[11px] font-bold text-rose-800">ভুল (-০.৫০)</div>
+                          <div className="text-[11px] font-bold text-rose-800">মোট ভুল (-০.৫০)</div>
                           <div className="text-xl font-black text-rose-700">{myContestSubmission.wrongCount}</div>
                         </div>
                         <div className="p-3 rounded-xl bg-slate-900 text-white">
-                          <div className="text-[11px] font-bold text-amber-300">মেধা স্থান</div>
+                          <div className="text-[11px] font-bold text-amber-300">আপনার পজিশন</div>
                           <div className="text-xl font-black">#{myLeaderboardRank}</div>
                         </div>
                       </div>
 
-                      <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+                      {/* Detailed Subject-wise Marks & Wrong Count Table */}
+                      {myContestSubmission.subjectBreakdown && (
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                          <div className="font-extrabold text-xs sm:text-sm text-slate-900">
+                            📊 কোন সাবজেক্টে কয়টি ভুল ও কত মার্কস পেয়েছেন:
+                          </div>
+                          <div className="space-y-2">
+                            {Object.values(myContestSubmission.subjectBreakdown).map((st, i) => {
+                              const isWeak = st.total > 0 && (st.marks / st.total < 0.5 || st.wrong >= 3);
+                              return (
+                                <div
+                                  key={i}
+                                  className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
+                                    isWeak ? "bg-rose-50 border-rose-200" : "bg-white border-slate-200"
+                                  }`}
+                                >
+                                  <div>
+                                    <span className="font-extrabold text-slate-900">{st.title}</span>
+                                    {isWeak && (
+                                      <span className="ml-2 px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-black">
+                                        ⚠️ দুর্বলতা
+                                      </span>
+                                    )}
+                                    <div className="text-[11px] text-slate-600 mt-0.5">
+                                      সঠিক: {st.correct}টি · <strong className="text-rose-700">ভুল: {st.wrong}টি</strong> · ফাঁকা: {st.unanswered}টি
+                                    </div>
+                                  </div>
+                                  <div className="text-right font-black text-sm text-[#2e1065]">
+                                    {st.marks} / {st.total}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Wrong Answer Explanations */}
+                      <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
                         {currentActiveContest?.questions?.map((q, i) => {
                           const qKey = q.qNo || i + 1;
                           const myAns = myContestSubmission.answersMap?.[qKey];
@@ -2771,7 +3136,7 @@ export default function BCSPathPlatform() {
                               </div>
                               {isWrong && (
                                 <div className="text-xs font-bold text-rose-700">
-                                  ✗ আপনার উত্তর: {q.options[myAns]}
+                                  ✗ আপনার ভুল উত্তর: {q.options[myAns]}
                                 </div>
                               )}
                               {q.explanation && (
@@ -2791,19 +3156,13 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 4. MOCK TEST HUB (CHAPTER TEST 1 & TEST 2) ================= */}
+        {/* ================= 4. MOCK TEST HUB ================= */}
         {activeTab === "mock_test_hub" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                  🎯 অধ্যায়ভিত্তিক মক টেস্ট হাব (Test 1 ও Test 2 · প্রতিটি টেস্টে ৫০টি প্রশ্ন)
-                </h2>
-                <p className="text-sm text-slate-600 mt-1">
-                  Subject এবং Chapter / Lecture নির্বাচন করে পরীক্ষায় অংশ নিন · প্রতি প্রশ্ন ৩৬ সেকেন্ড · পাস মার্ক ৬০% · নেগেটিভ মার্কিং ০.৫০
-                </p>
-              </div>
-
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                🎯 অধ্যায়ভিত্তিক মক টেস্ট হাব (Test 1 ও Test 2 · প্রতিটি টেস্টে ৫০টি প্রশ্ন)
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div>
                   <label className="font-extrabold text-xs sm:text-sm block mb-1.5 text-slate-700">
@@ -2872,7 +3231,7 @@ export default function BCSPathPlatform() {
 
               if (availableSets.length === 0) {
                 return (
-                  <div className="bg-white p-14 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
+                  <div className="bg-white p-14 rounded-2xl border border-dashed border-slate-300 text-center">
                     <div className="text-lg font-extrabold text-slate-800">
                       এই বিষয়ে বা অধ্যায়ে এখনো কোনো মক টেস্ট (Test 1 / Test 2) প্রকাশ করা হয়নি
                     </div>
@@ -2887,7 +3246,7 @@ export default function BCSPathPlatform() {
                     const qCount = setDoc.questions?.length || 0;
                     const totalMinutes = Math.round((qCount * 36) / 60);
                     return (
-                      <div key={setDoc._id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between gap-4">
+                      <div key={setDoc._id} className="premium-card bg-white p-6 rounded-2xl border border-slate-200 flex flex-col justify-between gap-4">
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <span className="px-3 py-1 rounded-full bg-purple-100 text-[#2e1065] text-xs font-extrabold">
@@ -2907,7 +3266,7 @@ export default function BCSPathPlatform() {
 
                         <button
                           onClick={() => launchSpecificExamSet(setDoc)}
-                          className="w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-extrabold hover:bg-black cursor-pointer"
+                          className="premium-btn w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-extrabold hover:bg-black cursor-pointer"
                         >
                           পরীক্ষা শুরু করুন (Test {setDoc.testNumber}) →
                         </button>
@@ -2935,7 +3294,7 @@ export default function BCSPathPlatform() {
                   <Clock className="w-5 h-5" /> সময় বাকি: {formatTime(timeLeft)}
                 </div>
                 {!examSubmitted && (
-                  <button onClick={handleFinishExam} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-extrabold hover:bg-black cursor-pointer">
+                  <button onClick={handleFinishExam} className="premium-btn px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-extrabold cursor-pointer">
                     খাতা জমা দিন
                   </button>
                 )}
@@ -2947,28 +3306,26 @@ export default function BCSPathPlatform() {
                 {(() => {
                   const res = calculateExamResult();
                   return (
-                    <>
-                      <div className="flex flex-wrap justify-between items-center gap-4 border-b pb-4">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-xl sm:text-2xl font-black text-slate-900">
-                            📊 প্রাপ্ত নম্বর: {res.finalScore} / {res.totalQ} ({res.scorePercentage}%)
-                          </h3>
-                          <span className={`px-3.5 py-1 rounded-full text-xs font-black ${res.isPassed ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
-                            {res.isPassed ? "🎉 উত্তীর্ণ (PASSED · ৬০%+)" : `⚠️ অনুত্তীর্ণ (পাস মার্ক ৬০% = ${res.passMarkRequired})`}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setExamAnswers({});
-                            setExamSubmitted(false);
-                            setTimeLeft(examQuestions.length * 36);
-                          }}
-                          className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <RotateCcw className="w-4 h-4" /> আবার পরীক্ষা দিন
-                        </button>
+                    <div className="flex flex-wrap justify-between items-center gap-4">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                          📊 প্রাপ্ত নম্বর: {res.finalScore} / {res.totalQ} ({res.scorePercentage}%)
+                        </h3>
+                        <span className={`px-3.5 py-1 rounded-full text-xs font-black ${res.isPassed ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                          {res.isPassed ? "🎉 উত্তীর্ণ (PASSED · ৬০%+)" : `⚠️ অনুত্তীর্ণ (পাস মার্ক ৬০% = ${res.passMarkRequired})`}
+                        </span>
                       </div>
-                    </>
+                      <button
+                        onClick={() => {
+                          setExamAnswers({});
+                          setExamSubmitted(false);
+                          setTimeLeft(examQuestions.length * 36);
+                        }}
+                        className="premium-btn px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <RotateCcw className="w-4 h-4" /> আবার পরীক্ষা দিন
+                      </button>
+                    </div>
                   );
                 })()}
               </div>
@@ -3016,15 +3373,13 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 6. QUESTION BANK HUB (WITH AUTO-SCROLL) ================= */}
+        {/* ================= 6. QUESTION BANK HUB ================= */}
         {activeTab === "qbank" && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-wrap justify-between items-center gap-4">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                  বিষয়ভিত্তিক প্রশ্ন ব্যাংক (PDF View ও ২-কলাম Text View)
-                </h2>
-              </div>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                বিষয়ভিত্তিক প্রশ্ন ব্যাংক (PDF View ও ২-কলাম Text View)
+              </h2>
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={selectedQbSubject}
@@ -3058,7 +3413,7 @@ export default function BCSPathPlatform() {
                         setActiveQbankDoc(doc);
                         smoothScrollToRef(qbankReaderRef);
                       }}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition ${
+                      className={`premium-card p-3.5 rounded-xl border cursor-pointer ${
                         isSelected ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:border-slate-400"
                       }`}
                     >
@@ -3083,7 +3438,12 @@ export default function BCSPathPlatform() {
                     className={`p-6 rounded-2xl bg-blue-50/40 border border-blue-200 text-base text-slate-900 leading-relaxed whitespace-pre-line font-medium clearfix ${
                       qbankTwoCol ? "md:columns-2 md:gap-10" : ""
                     }`}
-                    dangerouslySetInnerHTML={{ __html: activeQbankDoc.textContent || "টেক্সট নোট নেই।" }}
+                    dangerouslySetInnerHTML={{
+                      __html: renderContentWithShortcodeImages(
+                        activeQbankDoc.textContent || "টেক্সট নোট নেই।",
+                        activeQbankDoc.embeddedImages
+                      ),
+                    }}
                   />
                 )}
               </div>
@@ -3098,7 +3458,7 @@ export default function BCSPathPlatform() {
               <div key={sub.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                 <div className="p-5 bg-slate-50 border-b flex justify-between items-center">
                   <h3 className="font-extrabold text-lg">{idx + 1}. {sub.title}</h3>
-                  <button onClick={() => handleSelectSubject(sub.id)} className="px-4 py-2 bg-[#2e1065] text-white rounded-xl text-xs font-extrabold cursor-pointer">
+                  <button onClick={() => handleSelectSubject(sub.id)} className="premium-btn px-4 py-2 bg-[#2e1065] text-white rounded-xl text-xs font-extrabold cursor-pointer">
                     লেকচার দেখুন →
                   </button>
                 </div>
@@ -3138,7 +3498,7 @@ export default function BCSPathPlatform() {
                     if (adminPinInput === "bcs2026") setIsAdminUnlocked(true);
                     else alert("❌ ভুল পিন! সঠিক পিন: bcs2026");
                   }}
-                  className="w-full py-3.5 bg-[#1e1b4b] text-white rounded-xl text-sm font-extrabold cursor-pointer"
+                  className="premium-btn w-full py-3.5 bg-[#1e1b4b] text-white rounded-xl text-sm font-extrabold cursor-pointer"
                 >
                   অ্যাডমিন প্যানেল আনলক করুন
                 </button>
@@ -3155,7 +3515,7 @@ export default function BCSPathPlatform() {
                     >
                       <div>
                         <div className="font-extrabold text-lg text-[#2e1065]">📚 Course 01: BCS Preparation</div>
-                        <p className="text-xs text-slate-600">১২টি বিষয় · ভোকাবুলারি স্টোরি · ২০০ MCQ জাতীয় পরীক্ষা · Test 1 & 2</p>
+                        <p className="text-xs text-slate-600">১২টি বিষয় · ভোকাবুলারি স্টোরি · ১০ দিনের ২০০ MCQ জাতীয় পরীক্ষা</p>
                       </div>
                       <span className="px-3 py-1 rounded-full bg-purple-200 text-[#2e1065] text-xs font-extrabold">Course 01</span>
                     </div>
@@ -3174,7 +3534,6 @@ export default function BCSPathPlatform() {
                     </div>
                   </div>
 
-                  {/* Admin Module Navigation Tabs */}
                   <div className="flex flex-wrap gap-2.5 pt-2 border-t">
                     <button
                       onClick={() => setAdminSection("lectures")}
@@ -3182,7 +3541,7 @@ export default function BCSPathPlatform() {
                         adminSection === "lectures" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-800"
                       }`}
                     >
-                      ১. লেকচার আপলোড (PDF + Font +/- & Image Text)
+                      ১. লেকচার আপলোড (Shortcode ইমেজ ও ফন্ট +/-)
                     </button>
                     <button
                       onClick={() => setAdminSection("vocab_stories")}
@@ -3192,7 +3551,7 @@ export default function BCSPathPlatform() {
                           : "bg-violet-50 text-violet-900 border border-violet-200"
                       }`}
                     >
-                      ২. 📖 গল্পে গল্পে ভোকাবুলারি স্টোরি (২টি ইমেজসহ)
+                      ২. 📖 গল্পে গল্পে ভোকাবুলারি স্টোরি
                     </button>
                     <button
                       onClick={() => setAdminSection("exam_builder")}
@@ -3212,7 +3571,7 @@ export default function BCSPathPlatform() {
                           : "bg-amber-50 text-amber-950 border border-amber-300"
                       }`}
                     >
-                      ৪. 🏆 ১৫ দিনের জাতীয় বিসিএস পরীক্ষা সেটআপ (২০০ MCQ)
+                      ৪. 🏆 ১০ দিনের জাতীয় পরীক্ষা (২০০ MCQ + বাল্ক আপলোড)
                     </button>
                     <button
                       onClick={() => setAdminSection("qbank")}
@@ -3225,12 +3584,12 @@ export default function BCSPathPlatform() {
                   </div>
                 </div>
 
-                {/* ADMIN SECTION 1: LECTURE UPLOADER */}
+                {/* ================= ADMIN SECTION 1: LECTURE UPLOADER + SUBJECT FILTER SIDEBAR ================= */}
                 {adminSection === "lectures" && (
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 space-y-6">
                       <h3 className="text-xl font-extrabold">
-                        {editingId ? "✏️ লেকচার আপডেট করুন" : "➕ নতুন লেকচার আপলোড করুন (ফন্ট +/- এবং ভিজ্যুয়াল ইমেজসহ)"}
+                        {editingId ? "✏️ লেকচার আপডেট করুন" : "➕ নতুন লেকচার আপলোড করুন (ক্লিন শর্টকোড ইমেজ ও ফন্ট +/-)"}
                       </h3>
 
                       <form onSubmit={handleSaveLecture} className="space-y-6 text-sm">
@@ -3285,7 +3644,7 @@ export default function BCSPathPlatform() {
                           <div className="flex flex-col sm:flex-row gap-2">
                             <input
                               type="text"
-                              placeholder="লেকচার PDF-এর Google Drive লিংক অথবা ফাইল আপলোড করুন..."
+                              placeholder="লেকচার PDF লিংক অথবা ডান পাশ থেকে ফাইল আপলোড করুন..."
                               value={formData.lecturePdfUrl}
                               onChange={(e) => setFormData({ ...formData, lecturePdfUrl: e.target.value })}
                               className="flex-1 p-2.5 border rounded-xl bg-white"
@@ -3296,9 +3655,11 @@ export default function BCSPathPlatform() {
                             </label>
                           </div>
                           <RichTextColorEditor
-                            label="📝 মূল লেকচার নোট — Text View (+ / - ফন্ট সাইজ, কালার গ্রেডিং ও ভিজ্যুয়াল ইমেজ যুক্ত করুন)"
+                            label="📝 মূল লেকচার নোট — Text View (ইমেজ Drag & Drop করলে শুধু ছোট [[IMG_1:right]] ট্যাগ বসবে)"
                             value={formData.mainContent}
                             onChange={(val) => setFormData({ ...formData, mainContent: val })}
+                            embeddedImages={formData.embeddedImages}
+                            onUpdateImages={(imgs) => setFormData({ ...formData, embeddedImages: imgs })}
                             placeholder="মূল লেকচার নোটের টেক্সট এখানে লিখুন..."
                             rows={5}
                           />
@@ -3334,6 +3695,8 @@ export default function BCSPathPlatform() {
                             label="📝 এই Chapter-এর সকল MCQ — Text View"
                             value={formData.mcqTextContent}
                             onChange={(val) => setFormData({ ...formData, mcqTextContent: val })}
+                            embeddedImages={formData.embeddedImages}
+                            onUpdateImages={(imgs) => setFormData({ ...formData, embeddedImages: imgs })}
                             placeholder="অধ্যায়ভিত্তিক সকল MCQ এখানে পেস্ট করুন..."
                             rows={5}
                           />
@@ -3359,56 +3722,104 @@ export default function BCSPathPlatform() {
                             label="📝 লিখিত প্রশ্ন ও উত্তর — Text View"
                             value={formData.writtenTextContent}
                             onChange={(val) => setFormData({ ...formData, writtenTextContent: val })}
+                            embeddedImages={formData.embeddedImages}
+                            onUpdateImages={(imgs) => setFormData({ ...formData, embeddedImages: imgs })}
                             placeholder="লিখিত প্রশ্নোত্তর এখানে পেস্ট করুন..."
                             rows={4}
                           />
                         </div>
 
-                        <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl text-base font-black hover:bg-black cursor-pointer shadow-lg">
+                        <button type="submit" className="premium-btn w-full py-4 bg-slate-900 text-white rounded-2xl text-base font-black hover:bg-black cursor-pointer shadow-lg">
                           {editingId ? "✓ আপডেট সেভ করুন" : "🚀 লেকচার পাবলিশ করুন"}
                         </button>
                       </form>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-3">
-                      <h4 className="font-extrabold text-base">আপলোডকৃত লেকচার ({lectures.length}টি)</h4>
-                      <div className="space-y-3 max-h-[800px] overflow-y-auto">
-                        {lectures.map((lec) => {
-                          const lKey = lec._id || lec.id;
+                    {/* Right Sidebar: Subject-wise Filtered Lecture List & Counter (Requirement 4) */}
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+                      <div>
+                        <h4 className="font-extrabold text-base flex items-center gap-2">
+                          <Filter className="w-4 h-4 text-purple-700" /> সাবজেক্ট অনুযায়ী লেকচার খুঁজুন ও এডিট করুন
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          সাবজেক্ট সিলেক্ট করলেই ওই সাবজেক্টের অধীনে কয়টি লেকচার আপলোড করা হয়েছে তা দেখাবে:
+                        </p>
+                      </div>
+
+                      <select
+                        value={adminLectureFilterSubject}
+                        onChange={(e) => setAdminLectureFilterSubject(e.target.value)}
+                        className="w-full p-3 border-2 border-purple-200 rounded-xl bg-purple-50/40 font-extrabold text-sm text-slate-900"
+                      >
+                        <option value="ALL">
+                          সকল সাবজেক্ট ({lectures.filter((l) => (l.courseType || "bcs") === adminCourseTrack).length}টি লেকচার)
+                        </option>
+                        {(adminCourseTrack === "bcs" ? bcsSubjects : defenseSubjects).map((s) => {
+                          const cnt = lectures.filter(
+                            (l) => (l.courseType || "bcs") === adminCourseTrack && l.subjectId === s.id
+                          ).length;
                           return (
-                            <div key={lKey} className="p-3.5 rounded-xl border bg-slate-50 space-y-2">
-                              <div className="text-xs font-extrabold text-purple-800">
-                                {lec.subjectId} · Lec {lec.lectureNo}
-                              </div>
-                              <div className="font-bold text-sm">{lec.title}</div>
-                              <div className="flex gap-2">
-                                <button onClick={() => handleEditLectureClick(lec)} className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer">
-                                  এডিট
-                                </button>
-                                <button onClick={() => handleDeleteLecture(lKey)} className="p-1.5 bg-rose-50 text-rose-600 border rounded-lg cursor-pointer">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
+                            <option key={s.id} value={s.id}>
+                              {s.title} — ({cnt}টি লেকচার)
+                            </option>
                           );
                         })}
-                      </div>
+                      </select>
+
+                      {(() => {
+                        const filteredAdminLectures = lectures.filter(
+                          (l) =>
+                            (l.courseType || "bcs") === adminCourseTrack &&
+                            (adminLectureFilterSubject === "ALL" || l.subjectId === adminLectureFilterSubject)
+                        );
+
+                        return (
+                          <>
+                            <div className="px-3.5 py-2 rounded-xl bg-slate-100 text-xs font-extrabold text-slate-800 flex justify-between items-center">
+                              <span>প্রদর্শিত লেকচার সংখ্যা:</span>
+                              <span className="px-2.5 py-0.5 rounded-full bg-[#2e1065] text-white">
+                                {filteredAdminLectures.length}টি
+                              </span>
+                            </div>
+
+                            <div className="space-y-3 max-h-[700px] overflow-y-auto pr-1">
+                              {filteredAdminLectures.map((lec) => {
+                                const lKey = lec._id || lec.id;
+                                const subTitle = (adminCourseTrack === "bcs" ? bcsSubjects : defenseSubjects).find(
+                                  (s) => s.id === lec.subjectId
+                                )?.title || lec.subjectId;
+                                return (
+                                  <div key={lKey} className="p-3.5 rounded-xl border bg-slate-50 space-y-2">
+                                    <div className="text-xs font-extrabold text-purple-800">
+                                      {subTitle} · Lec {lec.lectureNo}
+                                    </div>
+                                    <div className="font-bold text-sm">{lec.title}</div>
+                                    <div className="flex gap-2">
+                                      <button onClick={() => handleEditLectureClick(lec)} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer hover:bg-blue-700">
+                                        এডিট
+                                      </button>
+                                      <button onClick={() => handleDeleteLecture(lKey)} className="p-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg cursor-pointer hover:bg-rose-100">
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
 
-                {/* ================= ADMIN SECTION 2: STORY VOCABULARY BUILDER (WITH 2 VISUAL STORYBOOK IMAGES) ================= */}
+                {/* ================= ADMIN SECTION 2: STORY VOCABULARY BUILDER ================= */}
                 {adminSection === "vocab_stories" && (
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 bg-white p-6 rounded-2xl border-2 border-violet-200 space-y-5">
-                      <div>
-                        <span className="px-3 py-1 rounded-full bg-violet-100 text-violet-900 text-xs font-extrabold">
-                          English Grammar Special Feature
-                        </span>
-                        <h3 className="text-xl font-extrabold text-slate-900 mt-1">
-                          📖 গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি স্টোরি আপলোড করুন (২টি ভিজ্যুয়াল ইমেজসহ)
-                        </h3>
-                      </div>
+                      <h3 className="text-xl font-extrabold text-slate-900">
+                        📖 গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি স্টোরি আপলোড করুন (২টি ইমেজসহ)
+                      </h3>
 
                       <form onSubmit={handleSaveVocabStory} className="space-y-5 text-sm">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -3425,7 +3836,6 @@ export default function BCSPathPlatform() {
                             <label className="font-extrabold block mb-1">গল্পের শিরোনাম (Story Title) *</label>
                             <input
                               type="text"
-                              placeholder="যেমন: Story 01: দ্য লস্ট কিংডম ও ৫০টি হাই-ফ্রিকোয়েন্সি বিসিএস ভোকাবুলারি"
                               value={vocabFormData.title}
                               onChange={(e) => setVocabFormData({ ...vocabFormData, title: e.target.value })}
                               className="w-full p-3 border rounded-xl font-bold"
@@ -3433,56 +3843,39 @@ export default function BCSPathPlatform() {
                           </div>
                         </div>
 
-                        {/* 2 Storybook Visual Images Uploaders */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-violet-50/60 border border-violet-200">
-                          {/* Image 1 */}
                           <div className="p-3.5 bg-white rounded-xl border space-y-2.5">
                             <div className="flex justify-between items-center">
-                              <span className="font-extrabold text-xs text-violet-950">🖼️ স্টোরি ইমেজ ১ (Story Image 1)</span>
+                              <span className="font-extrabold text-xs text-violet-950">🖼️ স্টোরি ইমেজ ১</span>
                               <select
                                 value={vocabFormData.image1Position}
                                 onChange={(e) => setVocabFormData({ ...vocabFormData, image1Position: e.target.value })}
-                                className="text-xs font-bold border rounded px-2 py-1 bg-slate-50"
+                                className="text-xs font-bold border rounded px-2 py-1"
                               >
                                 <option value="right">ডান পাশে (Right)</option>
                                 <option value="left">বাম পাশে (Left)</option>
                                 <option value="top">উপরে বড় (Top)</option>
                               </select>
                             </div>
-                            <input
-                              type="text"
-                              placeholder="ইমেজ ১-এর লিংক অথবা নিচে ফাইল নিন..."
-                              value={vocabFormData.image1Url}
-                              onChange={(e) => setVocabFormData({ ...vocabFormData, image1Url: e.target.value })}
-                              className="w-full p-2 border rounded-lg text-xs"
-                            />
                             <label className="w-full py-2 bg-violet-700 text-white rounded-lg text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5">
                               <Upload className="w-3.5 h-3.5" /> ইমেজ ১ আপলোড করুন
                               <input type="file" accept="image/*" onChange={(e) => handleVocabStoryImageUpload(e, "image1Url")} className="hidden" />
                             </label>
                           </div>
 
-                          {/* Image 2 */}
                           <div className="p-3.5 bg-white rounded-xl border space-y-2.5">
                             <div className="flex justify-between items-center">
-                              <span className="font-extrabold text-xs text-violet-950">🖼️ স্টোরি ইমেজ ২ (Story Image 2)</span>
+                              <span className="font-extrabold text-xs text-violet-950">🖼️ স্টোরি ইমেজ ২</span>
                               <select
                                 value={vocabFormData.image2Position}
                                 onChange={(e) => setVocabFormData({ ...vocabFormData, image2Position: e.target.value })}
-                                className="text-xs font-bold border rounded px-2 py-1 bg-slate-50"
+                                className="text-xs font-bold border rounded px-2 py-1"
                               >
                                 <option value="left">বাম পাশে (Left)</option>
                                 <option value="right">ডান পাশে (Right)</option>
                                 <option value="bottom">নিচে বড় (Bottom)</option>
                               </select>
                             </div>
-                            <input
-                              type="text"
-                              placeholder="ইমেজ ২-এর লিংক অথবা নিচে ফাইল নিন..."
-                              value={vocabFormData.image2Url}
-                              onChange={(e) => setVocabFormData({ ...vocabFormData, image2Url: e.target.value })}
-                              className="w-full p-2 border rounded-lg text-xs"
-                            />
                             <label className="w-full py-2 bg-violet-700 text-white rounded-lg text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5">
                               <Upload className="w-3.5 h-3.5" /> ইমেজ ২ আপলোড করুন
                               <input type="file" accept="image/*" onChange={(e) => handleVocabStoryImageUpload(e, "image2Url")} className="hidden" />
@@ -3491,29 +3884,33 @@ export default function BCSPathPlatform() {
                         </div>
 
                         <RichTextColorEditor
-                          label="📖 মূল গল্পের টেক্সট (ভোকাবুলারি শব্দগুলো সিলেক্ট করে কালার গ্রেডিং, বোল্ড ও ফন্ট +/- করুন)"
+                          label="📖 মূল গল্পের টেক্সট"
                           value={vocabFormData.storyContent}
                           onChange={(val) => setVocabFormData({ ...vocabFormData, storyContent: val })}
+                          embeddedImages={vocabFormData.embeddedImages}
+                          onUpdateImages={(imgs) => setVocabFormData({ ...vocabFormData, embeddedImages: imgs })}
                           placeholder="এখানে গল্পটি লিখুন..."
                           rows={7}
                         />
 
                         <RichTextColorEditor
-                          label="📝 শব্দের অর্থ ও Synonym/Antonym বক্স (গল্পের নিচে ২-কলামে দেখাবে)"
+                          label="📝 শব্দের অর্থ ও Synonym/Antonym বক্স"
                           value={vocabFormData.wordMeaningBox}
                           onChange={(val) => setVocabFormData({ ...vocabFormData, wordMeaningBox: val })}
-                          placeholder="গল্পে ব্যবহৃত ভোকাবুলারিগুলোর বাংলা অর্থ ও সিনোনিম এখানে দিন..."
+                          embeddedImages={vocabFormData.embeddedImages}
+                          onUpdateImages={(imgs) => setVocabFormData({ ...vocabFormData, embeddedImages: imgs })}
+                          placeholder="গল্পে ব্যবহৃত ভোকাবুলারিগুলোর বাংলা অর্থ..."
                           rows={4}
                         />
 
-                        <button type="submit" className="w-full py-4 bg-violet-800 text-white rounded-2xl text-base font-black hover:bg-violet-950 cursor-pointer shadow-lg">
+                        <button type="submit" className="premium-btn w-full py-4 bg-violet-800 text-white rounded-2xl text-base font-black cursor-pointer">
                           {editingVocabId ? "✓ স্টোরি আপডেট করুন" : "🚀 ভোকাবুলারি স্টোরি পাবলিশ করুন"}
                         </button>
                       </form>
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-3">
-                      <h4 className="font-extrabold text-base">আপলোডকৃত ভোকাবুলারি স্টোরি ({vocabStories.length}টি)</h4>
+                      <h4 className="font-extrabold text-base">আপলোডকৃত স্টোরি ({vocabStories.length}টি)</h4>
                       {vocabStories.map((st) => {
                         const sId = st._id || st.id;
                         return (
@@ -3534,6 +3931,7 @@ export default function BCSPathPlatform() {
                                     image2Url: st.image2Url || "",
                                     image2Position: st.image2Position || "left",
                                     wordMeaningBox: st.wordMeaningBox || "",
+                                    embeddedImages: st.embeddedImages || {},
                                   });
                                 }}
                                 className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer"
@@ -3551,7 +3949,7 @@ export default function BCSPathPlatform() {
                   </div>
                 )}
 
-                {/* ================= ADMIN SECTION 3: CHAPTER TEST 1 & TEST 2 (50 QUESTIONS) ================= */}
+                {/* ================= ADMIN SECTION 3: CHAPTER TEST 1 & TEST 2 (50 QUESTIONS + BULK UPLOAD) ================= */}
                 {adminSection === "exam_builder" && (
                   <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-5">
                     <h3 className="text-xl font-extrabold">
@@ -3613,6 +4011,33 @@ export default function BCSPathPlatform() {
                           </button>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Bulk Upload Box for 50 Questions */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-300 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-extrabold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
+                          <FileUp className="w-4 h-4 text-emerald-700" /> ⚡ ১-ক্লিকে বাল্ক প্রশ্ন সেট করুন (.txt / .json ফাইল অথবা কপি-পেস্ট):
+                        </span>
+                        <label className="px-3.5 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5">
+                          <Upload className="w-3.5 h-3.5" /> ডক / .txt / .json ফাইল আপলোড করুন
+                          <input type="file" accept=".txt,.json" onChange={(e) => handleBulkFileUpload(e, "50")} className="hidden" />
+                        </label>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={bulk50Text}
+                        onChange={(e) => setBulk50Text(e.target.value)}
+                        placeholder={`উদাহরণ ফরম্যাট (যত খুশি প্রশ্ন একসাথে পেস্ট করুন):\n১. বাংলাদেশের প্রাচীনতম জনপদ কোনটি?\nক) পুণ্ড্র | খ) বঙ্গ | গ) সমতট | ঘ) হরিকেল\nউত্তর: ক\nব্যাখ্যা: পুণ্ড্র হলো প্রাচীনতম জনপদ।`}
+                        className="w-full p-3 border rounded-xl bg-white text-xs font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => applyBulkTo50Template(bulk50Text)}
+                        className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-extrabold cursor-pointer"
+                      >
+                        ⚡ পেস্ট করা প্রশ্নগুলো অটোমেটিক টেমপ্লেটে বসান
+                      </button>
                     </div>
 
                     <div className="flex flex-wrap gap-2 bg-slate-100 p-3 rounded-xl">
@@ -3684,26 +4109,23 @@ export default function BCSPathPlatform() {
                             </div>
                           ))}
                       </div>
-                      <button type="submit" className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-base font-black cursor-pointer">
+                      <button type="submit" className="premium-btn w-full py-4 bg-emerald-600 text-white rounded-2xl text-base font-black cursor-pointer">
                         🚀 Publish Test {examBuilderMeta.testNumber}
                       </button>
                     </form>
                   </div>
                 )}
 
-                {/* ================= ADMIN SECTION 4: 15-DAY 200-MCQ NATIONAL BCS CONTEST BUILDER ================= */}
+                {/* ================= ADMIN SECTION 4: 10-DAY 200-MCQ NATIONAL BCS CONTEST BUILDER (WITH BULK UPLOAD & PER-25 SUBJECT SELECTOR) ================= */}
                 {adminSection === "biweekly_200" && (
-                  <div className="bg-white p-6 rounded-2xl border-2 border-amber-400 space-y-5">
+                  <div className="bg-white p-6 rounded-2xl border-2 border-amber-400 space-y-6">
                     <div>
                       <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-950 text-xs font-black">
-                        প্রতি ১৫ দিনে ১টি জাতীয় পরীক্ষা · ২০০টি MCQ প্রশ্ন
+                        প্রতি ১০ দিনে ১টি জাতীয় পরীক্ষা (১০, ২০ ও ৩০ তারিখ) · ২০০টি MCQ প্রশ্ন
                       </span>
                       <h3 className="text-xl font-extrabold text-slate-900 mt-1">
                         🏆 বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড প্রিলিমিনারি পরীক্ষা সেটআপ (১ - ২০০ নম্বর প্রশ্ন)
                       </h3>
-                      <p className="text-xs sm:text-sm text-slate-600">
-                        প্রতিটি প্রশ্নের পাশে ক্যাটাগরি (<strong>General / English / Math</strong>) সিলেক্ট করতে পারবেন, যা লিডারবোর্ডে সমান নম্বর পাওয়া স্টুডেন্টদের টাই-ব্রেকিং করতে ব্যবহৃত হবে।
-                      </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-sm">
@@ -3725,39 +4147,112 @@ export default function BCSPathPlatform() {
                               setContestBuilderMeta({ ...contestBuilderMeta, resetSubmissions: e.target.checked })
                             }
                           />
-                          <span>নতুন ১৫ দিনের পর্ব শুরু করুন (আগের লিডারবোর্ড রিসেট)</span>
+                          <span>নতুন ১০ দিনের পর্ব শুরু করুন (লিডারবোর্ড রিসেট)</span>
                         </label>
                       </div>
                     </div>
 
-                    {/* Range Filter for 200 Questions */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-100 p-3 rounded-xl">
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          "1-25",
-                          "26-50",
-                          "51-75",
-                          "76-100",
-                          "101-125",
-                          "126-150",
-                          "151-175",
-                          "176-200",
-                        ].map((rng) => (
-                          <button
-                            key={rng}
-                            type="button"
-                            onClick={() => setActive200Range(rng)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold cursor-pointer ${
-                              active200Range === rng ? "bg-slate-900 text-white" : "bg-white border"
-                            }`}
+                    {/* 1-CLICK BULK UPLOAD FOR 200 QUESTIONS OR CURRENT 25 BLOCK (Requirement 5) */}
+                    <div className="p-5 rounded-2xl bg-purple-50/70 border-2 border-purple-200 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <h4 className="font-extrabold text-sm sm:text-base text-[#2e1065] flex items-center gap-2">
+                            <FileUp className="w-5 h-5" /> ⚡ বাল্ক প্রশ্ন আপলোড (১-২৫ ব্লক অথবা পুরো ১-২০০ প্রশ্ন এক ক্লিকে সেট করুন)
+                          </h4>
+                          <p className="text-xs text-slate-600">
+                            ডক / নোটপ্যাড (.txt) বা .json ফাইল আপলোড করুন অথবা নিচে কপি-পেস্ট করুন—প্রশ্ন, অপশন, সঠিক উত্তর ও ভুল উত্তরের ব্যাখ্যা স্বয়ংক্রিয়ভাবে সঠিক পজিশনে বসে যাবে!
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <select
+                            value={bulk200TargetMode}
+                            onChange={(e) => setBulk200TargetMode(e.target.value)}
+                            className="p-2.5 border border-purple-300 rounded-xl bg-white text-xs font-extrabold text-[#2e1065]"
                           >
-                            প্রশ্ন {rng}
-                          </button>
-                        ))}
+                            <option value="CURRENT_25">বর্তমান ব্লকে বসান (প্রশ্ন {active200Range})</option>
+                            <option value="ALL_200">শুরু থেকে বসান (প্রশ্ন ১ - ২০০ পর্যন্ত)</option>
+                          </select>
+
+                          <label className="premium-btn px-4 py-2.5 bg-[#2e1065] text-amber-300 rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5 shadow-sm">
+                            <Upload className="w-4 h-4" /> .txt / .json বাল্ক ফাইল আপলোড
+                            <input
+                              type="file"
+                              accept=".txt,.json"
+                              onChange={(e) => handleBulkFileUpload(e, "200")}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
                       </div>
-                      <span className="text-xs font-black text-amber-900">
-                        পূরণকৃত প্রশ্ন: {template200Questions.filter((q) => q.question.trim() !== "").length} / ২০০টি
-                      </span>
+
+                      <textarea
+                        rows={4}
+                        value={bulk200Text}
+                        onChange={(e) => setBulk200Text(e.target.value)}
+                        placeholder={`এখানে ২৫টি বা ২০০টি প্রশ্ন একসাথে পেস্ট করুন (নমুনা ফরম্যাট):\n১. বাংলা সাহিত্যের প্রাচীনতম নিদর্শন কোনটি?\nক) চর্যাপদ | খ) শ্রীকৃষ্ণকীর্তন | গ) মনসামঙ্গল | ঘ) গীতগোবিন্দ\nউত্তর: ক\nব্যাখ্যা: চর্যাপদ বাংলা সাহিত্যের প্রাচীনতম নিদর্শন।\n\n২. 'সংশপ্তক' কার রচনা?\nক) শহীদুল্লাহ কায়সার | খ) শওকত ওসমান | গ) জহির রায়হান | ঘ) সৈয়দ ওয়ালীউল্লাহ\nউত্তর: ক\nব্যাখ্যা: সংশপ্তক শহীদুল্লাহ কায়সারের বিখ্যাত উপন্যাস।`}
+                        className="w-full p-3.5 border border-purple-200 rounded-xl bg-white text-xs font-medium leading-relaxed"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => applyBulkTo200Template(bulk200Text)}
+                        className="premium-btn px-5 py-2.5 bg-purple-700 text-white rounded-xl text-xs font-extrabold hover:bg-purple-800 cursor-pointer"
+                      >
+                        ⚡ পেস্ট করা প্রশ্নগুলো স্বয়ংক্রিয়ভাবে টেমপ্লেটে বসান ({bulk200TargetMode === "CURRENT_25" ? `প্রশ্ন ${active200Range}` : "প্রশ্ন ১ - ২০০"})
+                      </button>
+                    </div>
+
+                    {/* Range Filter (25 Questions per Block) + Per-25 Subject Selector (Requirement 6) */}
+                    <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            "1-25",
+                            "26-50",
+                            "51-75",
+                            "76-100",
+                            "101-125",
+                            "126-150",
+                            "151-175",
+                            "176-200",
+                          ].map((rng) => (
+                            <button
+                              key={rng}
+                              type="button"
+                              onClick={() => setActive200Range(rng)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold cursor-pointer transition ${
+                                active200Range === rng
+                                  ? "bg-slate-900 text-amber-300 shadow-xs"
+                                  : "bg-white text-slate-700 border hover:bg-slate-50"
+                              }`}
+                            >
+                              প্রশ্ন {rng}
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-xs font-black text-amber-900 bg-amber-100 px-3 py-1 rounded-full">
+                          মোট পূরণকৃত প্রশ্ন: {template200Questions.filter((q) => q.question.trim() !== "").length} / ২০০টি
+                        </span>
+                      </div>
+
+                      {/* Subject Selector for Current 25-Question Block */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200">
+                        <div className="text-xs font-extrabold text-slate-800">
+                          📌 বর্তমান ব্লকের (<strong>প্রশ্ন {active200Range}</strong>) ২৫টি প্রশ্নের জন্য বিষয় (Subject) নির্ধারণ করুন (লিডারবোর্ডে স্টুডেন্টের বিষয়ভিত্তিক মার্কস ও দুর্বলতা দেখানোর জন্য):
+                        </div>
+                        <select
+                          value={current25BlockSubjectId}
+                          onChange={(e) => setSubjectFor25Block(active200Range, e.target.value)}
+                          className="px-4 py-2 rounded-xl border-2 border-purple-500 bg-white text-xs sm:text-sm font-black text-[#2e1065]"
+                        >
+                          {bcsSubjects.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.title} (প্রশ্ন {active200Range})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     <form onSubmit={handlePublish200Contest} className="space-y-4">
@@ -3769,19 +4264,32 @@ export default function BCSPathPlatform() {
                           })
                           .map((slot) => (
                             <div key={slot.qNo} className="p-4 rounded-2xl border bg-slate-50 space-y-2.5">
-                              <div className="flex items-center justify-between">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="px-3 py-1 rounded-lg bg-slate-900 text-amber-300 text-xs font-black">
                                   জাতীয় পরীক্ষা · প্রশ্ন #{slot.qNo}
                                 </span>
-                                <select
-                                  value={slot.category}
-                                  onChange={(e) => update200TemplateSlot(slot.qNo, "category", e.target.value)}
-                                  className="px-3 py-1 rounded-lg border bg-white text-xs font-extrabold text-purple-900"
-                                >
-                                  <option value="general">সাধারণ বিষয় (General)</option>
-                                  <option value="english">ইংরেজি (English — Tie-Breaker 1)</option>
-                                  <option value="math">গণিত (Math — Tie-Breaker 2)</option>
-                                </select>
+
+                                <div className="flex items-center gap-2">
+                                  <select
+                                    value={slot.subjectId || "bangla"}
+                                    onChange={(e) => update200TemplateSlot(slot.qNo, "subjectId", e.target.value)}
+                                    className="px-2.5 py-1 rounded-lg border bg-white text-xs font-bold text-slate-800"
+                                  >
+                                    {bcsSubjects.map((s) => (
+                                      <option key={s.id} value={s.id}>{s.title}</option>
+                                    ))}
+                                  </select>
+
+                                  <select
+                                    value={slot.category}
+                                    onChange={(e) => update200TemplateSlot(slot.qNo, "category", e.target.value)}
+                                    className="px-2.5 py-1 rounded-lg border bg-purple-50 text-xs font-extrabold text-purple-900"
+                                  >
+                                    <option value="general">General</option>
+                                    <option value="english">English (Tie-Breaker 1)</option>
+                                    <option value="math">Math (Tie-Breaker 2)</option>
+                                  </select>
+                                </div>
                               </div>
 
                               <input
@@ -3828,49 +4336,119 @@ export default function BCSPathPlatform() {
                           ))}
                       </div>
 
-                      <button type="submit" className="w-full py-4 bg-amber-400 text-slate-950 rounded-2xl text-base font-black hover:bg-amber-300 cursor-pointer shadow-lg">
-                        🚀 ১৫ দিনের জাতীয় বিসিএস পরীক্ষা (২০০ MCQ) Publish করুন
+                      <button type="submit" className="premium-btn w-full py-4 bg-amber-400 text-slate-950 rounded-2xl text-base font-black hover:bg-amber-300 cursor-pointer shadow-lg">
+                        🚀 ১০ দিনের জাতীয় বিসিএস পরীক্ষা (২০০ MCQ) Publish করুন
                       </button>
                     </form>
                   </div>
                 )}
 
-                {/* ADMIN SECTION 5: QUESTION BANK */}
+                {/* ================= ADMIN SECTION 5: QUESTION BANK ================= */}
                 {adminSection === "qbank" && (
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-5">
-                    <h3 className="text-xl font-extrabold">প্রশ্ন ব্যাংক আপলোড (PDF + Color Text View)</h3>
-                    <form onSubmit={handleSaveQbankDoc} className="space-y-4 text-sm">
-                      <input
-                        type="text"
-                        placeholder="প্রশ্ন ব্যাংকের শিরোনাম *"
-                        value={qbFormData.title}
-                        onChange={(e) => setQbFormData({ ...qbFormData, title: e.target.value })}
-                        className="w-full p-3 border rounded-xl font-bold"
-                      />
-                      <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 space-y-5">
+                      <h3 className="text-xl font-extrabold">
+                        {editingQbId ? "✏️ প্রশ্ন ব্যাংক আপডেট করুন" : "➕ প্রশ্ন ব্যাংক আপলোড (PDF + Shortcode Image Text View)"}
+                      </h3>
+                      <form onSubmit={handleSaveQbankDoc} className="space-y-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="font-extrabold block mb-1">বিষয় নির্বাচন করুন</label>
+                            <select
+                              value={qbFormData.subjectId}
+                              onChange={(e) => setQbFormData({ ...qbFormData, subjectId: e.target.value })}
+                              className="w-full p-3 border rounded-xl bg-slate-50 font-bold"
+                            >
+                              {(adminCourseTrack === "bcs" ? bcsSubjects : defenseSubjects).map((s) => (
+                                <option key={s.id} value={s.id}>{s.title}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="font-extrabold block mb-1">বিসিএস ব্যাচ / সাল</label>
+                            <input
+                              type="text"
+                              value={qbFormData.bcsBatch}
+                              onChange={(e) => setQbFormData({ ...qbFormData, bcsBatch: e.target.value })}
+                              className="w-full p-3 border rounded-xl"
+                            />
+                          </div>
+                        </div>
+
                         <input
                           type="text"
-                          placeholder="PDF লিংক..."
-                          value={qbFormData.pdfUrl}
-                          onChange={(e) => setQbFormData({ ...qbFormData, pdfUrl: e.target.value })}
-                          className="flex-1 p-2.5 border rounded-xl"
+                          placeholder="প্রশ্ন ব্যাংকের শিরোনাম *"
+                          value={qbFormData.title}
+                          onChange={(e) => setQbFormData({ ...qbFormData, title: e.target.value })}
+                          className="w-full p-3 border rounded-xl font-bold"
                         />
-                        <label className="px-4 py-2.5 bg-blue-600 text-white rounded-xl font-extrabold cursor-pointer flex items-center gap-1.5">
-                          <Upload className="w-4 h-4" /> PDF ফাইল নিন
-                          <input type="file" accept="application/pdf" onChange={(e) => handleAdminPdfFileSelect(e, "pdfUrl", true)} className="hidden" />
-                        </label>
-                      </div>
-                      <RichTextColorEditor
-                        label="📝 প্রশ্ন ব্যাংক — Text View"
-                        value={qbFormData.textContent}
-                        onChange={(val) => setQbFormData({ ...qbFormData, textContent: val })}
-                        placeholder="প্রশ্ন ব্যাংকের টেক্সট এখানে লিখুন..."
-                        rows={5}
-                      />
-                      <button type="submit" className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-extrabold cursor-pointer">
-                        🚀 প্রশ্ন ব্যাংক পাবলিশ করুন
-                      </button>
-                    </form>
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <input
+                            type="text"
+                            placeholder="PDF লিংক..."
+                            value={qbFormData.pdfUrl}
+                            onChange={(e) => setQbFormData({ ...qbFormData, pdfUrl: e.target.value })}
+                            className="flex-1 p-2.5 border rounded-xl"
+                          />
+                          <label className="px-4 py-2.5 bg-blue-600 text-white rounded-xl font-extrabold cursor-pointer flex items-center gap-1.5">
+                            <Upload className="w-4 h-4" /> PDF ফাইল নিন
+                            <input type="file" accept="application/pdf" onChange={(e) => handleAdminPdfFileSelect(e, "pdfUrl", true)} className="hidden" />
+                          </label>
+                        </div>
+
+                        <RichTextColorEditor
+                          label="📝 প্রশ্ন ব্যাংক — Text View"
+                          value={qbFormData.textContent}
+                          onChange={(val) => setQbFormData({ ...qbFormData, textContent: val })}
+                          embeddedImages={qbFormData.embeddedImages}
+                          onUpdateImages={(imgs) => setQbFormData({ ...qbFormData, embeddedImages: imgs })}
+                          placeholder="প্রশ্ন ব্যাংকের টেক্সট এখানে লিখুন..."
+                          rows={5}
+                        />
+
+                        <button type="submit" className="premium-btn w-full py-3.5 bg-slate-900 text-white rounded-xl font-extrabold cursor-pointer">
+                          {editingQbId ? "✓ আপডেট সেভ করুন" : "🚀 প্রশ্ন ব্যাংক পাবলিশ করুন"}
+                        </button>
+                      </form>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-3">
+                      <h4 className="font-extrabold text-base">আপলোডকৃত প্রশ্ন ব্যাংক ({qbankDocs.length}টি)</h4>
+                      {qbankDocs.map((doc) => {
+                        const dId = doc._id || doc.id;
+                        return (
+                          <div key={dId} className="p-3.5 rounded-xl border bg-slate-50 space-y-2">
+                            <div className="text-xs font-bold text-purple-800">{doc.bcsBatch}</div>
+                            <div className="font-extrabold text-sm">{doc.title}</div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingQbId(dId);
+                                  setQbFormData({
+                                    courseType: doc.courseType || "bcs",
+                                    subjectId: doc.subjectId,
+                                    bcsBatch: doc.bcsBatch,
+                                    title: doc.title,
+                                    pdfUrl: doc.pdfUrl || "",
+                                    textContent: doc.textContent || "",
+                                    highlightBox: doc.highlightBox || "",
+                                    twoColumn: doc.twoColumn !== false,
+                                    embeddedImages: doc.embeddedImages || {},
+                                  });
+                                }}
+                                className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer"
+                              >
+                                এডিট
+                              </button>
+                              <button onClick={() => handleDeleteQbankDoc(dId)} className="p-1.5 bg-rose-50 text-rose-600 border rounded-lg cursor-pointer">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -3878,6 +4456,79 @@ export default function BCSPathPlatform() {
           </div>
         )}
       </main>
+
+      {/* ================= 10-DAY NATIONAL EXAM REGISTRATION MODAL (PHONE, NAME, INSTITUTION) ================= */}
+      {showContestRegModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 border-2 border-amber-400">
+            <div className="text-center space-y-1">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-2">
+                <UserPlus className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900">
+                ১০ দিনের জাতীয় বিসিএস পরীক্ষায় রেজিস্ট্রেশন
+              </h3>
+              <p className="text-xs text-slate-600 font-medium">
+                আপনার নাম, মোবাইল নম্বর ও শিক্ষাপ্রতিষ্ঠান দিয়ে রেজিস্টার করলেই সরাসরি ২০০ নম্বরের পরীক্ষার প্রশ্নপত্র ওপেন হবে।
+              </p>
+            </div>
+
+            <form onSubmit={handleContestRegistrationSubmit} className="space-y-3.5 text-sm">
+              <div>
+                <label className="font-extrabold block mb-1 text-slate-800">১. আপনার পূর্ণ নাম *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: Amir Hamza"
+                  value={contestRegForm.name}
+                  onChange={(e) => setContestRegForm({ ...contestRegForm, name: e.target.value })}
+                  className="w-full p-3 border border-slate-300 rounded-xl font-bold outline-none focus:border-[#2e1065]"
+                />
+              </div>
+
+              <div>
+                <label className="font-extrabold block mb-1 text-slate-800">২. মোবাইল নম্বর *</label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="017XXXXXXXX"
+                  value={contestRegForm.phone}
+                  onChange={(e) => setContestRegForm({ ...contestRegForm, phone: e.target.value })}
+                  className="w-full p-3 border border-slate-300 rounded-xl font-bold outline-none focus:border-[#2e1065]"
+                />
+              </div>
+
+              <div>
+                <label className="font-extrabold block mb-1 text-slate-800">৩. শিক্ষাপ্রতিষ্ঠানের নাম *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: Metropolitan University, Sylhet"
+                  value={contestRegForm.institution}
+                  onChange={(e) => setContestRegForm({ ...contestRegForm, institution: e.target.value })}
+                  className="w-full p-3 border border-slate-300 rounded-xl font-bold outline-none focus:border-[#2e1065]"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowContestRegModal(false)}
+                  className="flex-1 py-3 border rounded-xl font-bold cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="premium-btn flex-1 py-3 bg-[#2e1065] text-amber-300 rounded-xl font-black cursor-pointer shadow-md"
+                >
+                  রেজিস্টার ও পরীক্ষা শুরু →
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* FULLSCREEN PDF VIEWER MODAL */}
       {isPdfFullscreen && (
@@ -3928,13 +4579,15 @@ export default function BCSPathPlatform() {
               className="w-full p-3 border rounded-xl"
             />
             <div className="flex gap-3">
-              <button onClick={() => setShowProfileEditModal(false)} className="flex-1 py-3 border rounded-xl font-bold">বাতিল</button>
+              <button onClick={() => setShowProfileEditModal(false)} className="flex-1 py-3 border rounded-xl font-bold cursor-pointer">
+                বাতিল
+              </button>
               <button
                 onClick={() => {
                   updateProfile(profile);
                   setShowProfileEditModal(false);
                 }}
-                className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-extrabold"
+                className="premium-btn flex-1 py-3 bg-slate-900 text-white rounded-xl font-extrabold cursor-pointer"
               >
                 সেভ করুন
               </button>
