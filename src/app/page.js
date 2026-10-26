@@ -1,5 +1,22 @@
 "use client";
 
+/**
+ * ============================================================================
+ * FILE: src/app/page.js
+ * PROJECT: BCS Path & Defense/Police Foundation — Complete Responsive Platform
+ * HIGHLIGHTS IN THIS VERSION:
+ * 1. Gateway Portal features:
+ *    - Navy/Gold Hero Banner ("স্বাগতম! আপনার কোর্স সিলেক্ট করুন")
+ *    - Live 10-Day 200-MCQ National Exam Card right on the Gateway
+ *    - Modern Course Cards with Pill Badges (লেকচার, MCQ, মক টেস্ট) + Footer Banner
+ * 2. Upgraded Dashboard, Mock Test (Ready vs "🔒 শিগগির আসছে"), and Question Bank
+ *    cards with direct "PDF খুলুন" & "Text View" buttons.
+ * 3. Mobile Sticky Bottom Navigation Bar (হোম, লেকচার, পরীক্ষা, প্রোফাইল).
+ * 4. Admin Panel strictly hides 10-Day 200-MCQ Contest & Vocab Stories when
+ *    "Course 02: Defense & Police" is selected.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   BookOpen, CheckCircle2, Sparkles, Trash2, Clock, ShieldCheck,
@@ -607,58 +624,59 @@ function MiniExecutive2DAvatar({ size = "w-14 h-14" }) {
 
 /**
  * ============================================================================
- * COMPONENT: GATEWAY HERO AVATAR (SUPPORTS MANUAL COMPUTER UPLOAD & STATIC FILE)
- * Automatically displays `/hero-avatar.png` from `public/` folder OR custom image
- * uploaded from Admin Panel, styled inside the exact Golden Circular Aura!
+ * COMPONENT: GATEWAY STUDENT ILLUSTRATION (THUMBS UP & BOOK WITH "ব")
+ * Matches the user's 4th reference image ("স্বাগতম! আপনার কোর্স সিলেক্ট করুন")
  * ============================================================================
  */
-function GatewayWelcomeStudentIllustration({ customHeroAvatar }) {
-  const [staticImgFailed, setStaticImgFailed] = useState(false);
-  const imgSrc = customHeroAvatar || (!staticImgFailed ? "/hero-avatar.png" : "");
-
+function GatewayWelcomeStudentIllustration() {
   return (
-    <div className="relative w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 mx-auto select-none flex items-end justify-center">
-      {/* Golden Yellow Semi-Circle / Full Aura Backdrop (Exact style from Image 4) */}
-      <div className="absolute inset-1 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-200 shadow-2xl" />
+    <div className="relative w-52 h-52 sm:w-64 sm:h-64 mx-auto select-none">
+      {/* Golden Yellow Semi-Circle Aura */}
+      <div className="absolute inset-1 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-200 shadow-xl" />
+      <svg viewBox="0 0 260 260" className="relative z-10 w-full h-full">
+        {/* Sparkle Rays */}
+        <line x1="42" y1="95" x2="25" y2="85" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="38" y1="112" x2="20" y2="112" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="215" y1="78" x2="232" y2="66" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="222" y1="96" x2="238" y2="94" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
 
-      {imgSrc ? (
-        <img
-          src={imgSrc}
-          alt="Welcome Student Avatar"
-          onError={() => setStaticImgFailed(true)}
-          className="relative z-10 w-[94%] h-[94%] object-contain object-bottom rounded-b-full drop-shadow-xl"
-        />
-      ) : (
-        <svg viewBox="0 0 260 260" className="relative z-10 w-full h-full">
-          <line x1="42" y1="95" x2="25" y2="85" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
-          <line x1="38" y1="112" x2="20" y2="112" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
-          <line x1="215" y1="78" x2="232" y2="66" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
-          <line x1="222" y1="96" x2="238" y2="94" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
-          <path d="M68 250 C72 175, 102 160, 135 160 C168 160, 198 175, 202 250 Z" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" />
-          <path d="M84 166 L76 248" stroke="#1e293b" strokeWidth="14" strokeLinecap="round" />
-          <path d="M186 166 L194 248" stroke="#1e293b" strokeWidth="14" strokeLinecap="round" />
-          <polygon points="112,158 135,178 118,188" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
-          <polygon points="158,158 135,178 152,188" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
-          <polygon points="130,174 140,174 144,232 135,242 126,232" fill="#1e3a8a" />
-          <rect x="124" y="135" width="22" height="26" rx="8" fill="#fdba74" />
-          <ellipse cx="135" cy="106" rx="32" ry="36" fill="#fed7aa" />
-          <circle cx="103" cy="108" r="6" fill="#fdba74" />
-          <circle cx="167" cy="108" r="6" fill="#fdba74" />
-          <path d="M101 98 C98 62, 130 52, 156 60 C174 65, 176 86, 168 100 C162 82, 146 78, 128 80 C112 82, 106 90, 101 98 Z" fill="#0f172a" />
-          <ellipse cx="123" cy="106" rx="3.2" ry="3.8" fill="#0f172a" />
-          <ellipse cx="147" cy="106" rx="3.2" ry="3.8" fill="#0f172a" />
-          <path d="M116 96 Q123 92 130 96" stroke="#0f172a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          <path d="M140 96 Q147 92 154 96" stroke="#0f172a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          <path d="M126 124 Q135 131 145 124" stroke="#9a3412" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          <rect x="52" y="160" width="13" height="24" rx="6" fill="#fed7aa" stroke="#ea580c" strokeWidth="1.5" />
-          <rect x="48" y="176" width="26" height="28" rx="8" fill="#fed7aa" stroke="#ea580c" strokeWidth="1.5" />
-          <g transform="rotate(10 175 210)">
-            <rect x="148" y="180" width="52" height="66" rx="5" fill="#1e3a8a" stroke="#0f172a" strokeWidth="2" />
-            <rect x="152" y="184" width="44" height="58" rx="3" fill="#172554" />
-            <text x="165" y="220" fill="#fbbf24" fontSize="24" fontWeight="900">ব</text>
-          </g>
-        </svg>
-      )}
+        {/* Backpack Straps & White Shirt */}
+        <path d="M68 250 C72 175, 102 160, 135 160 C168 160, 198 175, 202 250 Z" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" />
+        <path d="M84 166 L76 248" stroke="#1e293b" strokeWidth="14" strokeLinecap="round" />
+        <path d="M186 166 L194 248" stroke="#1e293b" strokeWidth="14" strokeLinecap="round" />
+
+        {/* Collar & Navy Blue Tie */}
+        <polygon points="112,158 135,178 118,188" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
+        <polygon points="158,158 135,178 152,188" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
+        <polygon points="130,174 140,174 144,232 135,242 126,232" fill="#1e3a8a" />
+
+        {/* Neck & Face */}
+        <rect x="124" y="135" width="22" height="26" rx="8" fill="#fdba74" />
+        <ellipse cx="135" cy="106" rx="32" ry="36" fill="#fed7aa" />
+        <circle cx="103" cy="108" r="6" fill="#fdba74" />
+        <circle cx="167" cy="108" r="6" fill="#fdba74" />
+
+        {/* Styled Dark Navy Hair */}
+        <path d="M101 98 C98 62, 130 52, 156 60 C174 65, 176 86, 168 100 C162 82, 146 78, 128 80 C112 82, 106 90, 101 98 Z" fill="#0f172a" />
+
+        {/* Confident Smile & Eyes */}
+        <ellipse cx="123" cy="106" rx="3.2" ry="3.8" fill="#0f172a" />
+        <ellipse cx="147" cy="106" rx="3.2" ry="3.8" fill="#0f172a" />
+        <path d="M116 96 Q123 92 130 96" stroke="#0f172a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <path d="M140 96 Q147 92 154 96" stroke="#0f172a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <path d="M126 124 Q135 131 145 124" stroke="#9a3412" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+
+        {/* Thumbs Up Hand (Left) */}
+        <rect x="52" y="160" width="13" height="24" rx="6" fill="#fed7aa" stroke="#ea580c" strokeWidth="1.5" />
+        <rect x="48" y="176" width="26" height="28" rx="8" fill="#fed7aa" stroke="#ea580c" strokeWidth="1.5" />
+
+        {/* Navy Book with Golden "ব" (Right) */}
+        <g transform="rotate(10 175 210)">
+          <rect x="148" y="180" width="52" height="66" rx="5" fill="#1e3a8a" stroke="#0f172a" strokeWidth="2" />
+          <rect x="152" y="184" width="44" height="58" rx="3" fill="#172554" />
+          <text x="165" y="220" fill="#fbbf24" fontSize="24" fontWeight="900">ব</text>
+        </g>
+      </svg>
     </div>
   );
 }
@@ -681,9 +699,6 @@ export default function BCSPathPlatform() {
   const [selectedCourse, setSelectedCourse] = useState("bcs");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [navHistory, setNavHistory] = useState([]);
-
-  // Custom Gateway Hero Avatar State
-  const [customHeroAvatar, setCustomHeroAvatar] = useState("");
 
   const navigateTo = (tabName) => {
     if (tabName !== activeTab) {
@@ -744,6 +759,8 @@ export default function BCSPathPlatform() {
     hideProfile: false,
     avatarUrl: "",
   });
+  const [isEditingPortalName, setIsEditingPortalName] = useState(false);
+  const [tempPortalName, setTempPortalName] = useState("Hamza");
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
 
   // Lecture & Story Vocabulary State
@@ -949,14 +966,12 @@ export default function BCSPathPlatform() {
     }
     setStudentUniqueKey(uKey);
 
-    const savedHeroImg = localStorage.getItem("bcs_custom_hero_avatar");
-    if (savedHeroImg) setCustomHeroAvatar(savedHeroImg);
-
     const savedProf = localStorage.getItem("bcs_student_profile");
     if (savedProf) {
       try {
         const parsed = JSON.parse(savedProf);
         setProfile(parsed);
+        setTempPortalName(parsed.name || "Hamza");
         setContestRegForm({
           name: parsed.name || "",
           phone: parsed.phone || "",
@@ -1040,7 +1055,11 @@ export default function BCSPathPlatform() {
     examSets,
   ]);
 
-  // Strictly hides 10-Day 200-MCQ Contest & Vocab Stories when switching to Defense Track
+  /**
+   * IMPORTANT FIX (Requirement 4):
+   * When Admin switches to "defense" (Course 02), strictly hide & exit "biweekly_200"
+   * and "vocab_stories" because those are exclusively for BCS Preparation!
+   */
   const handleAdminCourseSwitch = (track) => {
     setAdminCourseTrack(track);
     const defaultSub = track === "bcs" ? "bangla" : "def_math";
@@ -1102,6 +1121,7 @@ export default function BCSPathPlatform() {
   const updateProfile = async (updatedFields) => {
     const newProf = { ...profile, ...updatedFields };
     setProfile(newProf);
+    setTempPortalName(newProf.name);
     localStorage.setItem("bcs_student_profile", JSON.stringify(newProf));
     try {
       await fetch("/api/platform", {
@@ -1124,18 +1144,6 @@ export default function BCSPathPlatform() {
     }
     const reader = new FileReader();
     reader.onload = () => updateProfile({ avatarUrl: reader.result });
-    reader.readAsDataURL(file);
-  };
-
-  const handleHeroAvatarUploadFromComputer = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCustomHeroAvatar(reader.result);
-      localStorage.setItem("bcs_custom_hero_avatar", reader.result);
-      alert("✅ স্বাগতম ব্যানারের অ্যাভাটার ইমেজ সফলভাবে আপডেট হয়েছে!");
-    };
     reader.readAsDataURL(file);
   };
 
@@ -1297,6 +1305,7 @@ export default function BCSPathPlatform() {
     setIsRegisteredForContest(true);
     setShowContestRegModal(false);
 
+    // Ensure we are inside the BCS Course App on the 10-day contest tab
     setSelectedCourse("bcs");
     setActivePortal("course_app");
     setActiveTab("biweekly_contest");
@@ -1878,12 +1887,13 @@ export default function BCSPathPlatform() {
 
   /**
    * ==========================================================================
-   * VIEW 1: PORTAL GATEWAY LANDING PAGE
+   * VIEW 1: PORTAL GATEWAY LANDING PAGE (MATCHES IMAGE 4 + LIVE 10-DAY EXAM CARD)
    * ==========================================================================
    */
   if (activePortal === "gateway") {
     return (
       <div className="min-h-screen bg-[#f4f6fb] text-slate-900 pb-16">
+        {/* Top Dark Navy App Header (Matches Image 4) */}
         <header className="bg-[#0b1736] text-white border-b border-slate-800 sticky top-0 z-40">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
             <div className="flex items-center gap-3.5">
@@ -1923,7 +1933,7 @@ export default function BCSPathPlatform() {
           </div>
         </header>
 
-        {/* Hero Banner ("স্বাগতম! আপনার কোর্স সিলেক্ট করুন" + Custom Avatar Slot) */}
+        {/* Hero Banner ("স্বাগতম! আপনার কোর্স সিলেক্ট করুন" - Matches Image 4) */}
         <section className="bg-gradient-to-r from-[#0b1736] via-[#13285c] to-[#1e3a8a] text-white overflow-hidden relative">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 grid grid-cols-12 items-center gap-4">
             <div className="col-span-7 sm:col-span-7 space-y-3 z-10">
@@ -1951,7 +1961,7 @@ export default function BCSPathPlatform() {
             </div>
 
             <div className="col-span-5 sm:col-span-5 flex justify-end">
-              <GatewayWelcomeStudentIllustration customHeroAvatar={customHeroAvatar} />
+              <GatewayWelcomeStudentIllustration />
             </div>
           </div>
         </section>
@@ -1959,7 +1969,7 @@ export default function BCSPathPlatform() {
         {/* Main Content Container */}
         <main className="max-w-5xl mx-auto px-4 sm:px-6 -mt-5 relative z-20 space-y-6">
           <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-lg border border-slate-200/80 space-y-6">
-            {/* 10-DAY NATIONAL BCS 200-MCQ OPEN EXAM BANNER */}
+            {/* ================= 10-DAY NATIONAL BCS 200-MCQ OPEN EXAM BANNER (VISIBLE RIGHT WHEN APP OPENS!) ================= */}
             <div
               onClick={handleOpenOrStart10DayContest}
               className="premium-card rounded-2xl bg-gradient-to-r from-[#1e1b4b] via-[#31105f] to-[#2e1065] text-white p-5 sm:p-6 border-2 border-amber-400/70 shadow-md cursor-pointer"
@@ -1973,10 +1983,11 @@ export default function BCSPathPlatform() {
                     {currentActiveContest?.title || "বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড লাইভ পরীক্ষা (২০০ MCQ)"}
                   </h3>
                   <p className="text-xs text-purple-200 font-medium">
-                    এখানে ক্লিক করে নাম, মোবাইল ও প্রতিষ্ঠান দিয়ে রেজিস্ট্রেশন করুন এবং সরাসরি পরীক্ষার UI-তে অংশ নিন!
+                    এখানে ক্লিক করে নাম, মোবাইল ও প্রতিষ্ঠান দিয়ে রেজিস্ট্রেশন করুন এবং জাতীয় মেধা তালিকায় নিজের অবস্থান যাচাই করুন!
                   </p>
                 </div>
 
+                {/* Live Mini Countdown & CTA */}
                 <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                   <div className="flex items-center gap-1.5 bg-slate-950/70 px-3 py-2 rounded-xl border border-purple-400/30 text-center">
                     <div>
@@ -2007,7 +2018,7 @@ export default function BCSPathPlatform() {
               </div>
             </div>
 
-            {/* Section Header: Available Courses */}
+            {/* Section Header: Available Courses (Matches Image 4) */}
             <div className="flex items-center gap-3 pt-1">
               <div className="w-11 h-11 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-800 shrink-0">
                 <Award className="w-6 h-6" />
@@ -2018,8 +2029,9 @@ export default function BCSPathPlatform() {
               </div>
             </div>
 
-            {/* 2 Course Cards */}
+            {/* 2 Course Cards (Matches Image 4 layout & works seamlessly on Desktop/Mobile) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* COURSE 1: BCS PREPARATION */}
               <div
                 onClick={() => enterCourseDashboard("bcs")}
                 className="premium-card group rounded-2xl border-2 border-purple-100 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/40 p-5 sm:p-6 flex items-center justify-between gap-4 cursor-pointer shadow-xs hover:border-purple-500"
@@ -2055,6 +2067,7 @@ export default function BCSPathPlatform() {
                 </div>
               </div>
 
+              {/* COURSE 2: DEFENSE & POLICE FOUNDATION */}
               <div
                 onClick={() => enterCourseDashboard("defense")}
                 className="premium-card group rounded-2xl border-2 border-blue-100 bg-gradient-to-br from-white via-blue-50/30 to-sky-100/40 p-5 sm:p-6 flex items-center justify-between gap-4 cursor-pointer shadow-xs hover:border-blue-500"
@@ -2090,7 +2103,7 @@ export default function BCSPathPlatform() {
               </div>
             </div>
 
-            {/* Bottom Motivational Banner */}
+            {/* Bottom Motivational Banner (Matches Image 4) */}
             <div className="rounded-2xl bg-gradient-to-r from-[#0b1736] via-[#13285c] to-[#0b1736] text-white p-5 sm:p-6 flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-11 h-11 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
@@ -2117,11 +2130,12 @@ export default function BCSPathPlatform() {
 
   /**
    * ==========================================================================
-   * VIEW 2: COURSE APPLICATION
+   * VIEW 2: COURSE APPLICATION (MATCHES IMAGES 1, 2, 3, 5, 6, 7)
    * ==========================================================================
    */
   return (
     <div className={`min-h-screen bg-[#f4f6fb] text-slate-900 pb-24 ${activeTab !== "admin" ? "select-none" : ""}`}>
+      {/* TOP HEADER & ICON NAVIGATION BAR (Matches Images 1, 2, 3) */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-2xs">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -2152,6 +2166,7 @@ export default function BCSPathPlatform() {
           </button>
         </div>
 
+        {/* SECOND ROW ICON TAB BAR (Visible on Mobile, Tablet & Desktop — Matches Images 1, 2, 3) */}
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 flex overflow-x-auto border-t border-slate-100 bg-white gap-5 sm:gap-8 text-xs sm:text-sm font-extrabold whitespace-nowrap text-slate-700">
           <button
             onClick={() => setActivePortal("gateway")}
@@ -2235,6 +2250,7 @@ export default function BCSPathPlatform() {
       </header>
 
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-5">
+        {/* BACK NAVIGATION PILL BAR (Matches Images 2 & 3) */}
         {activeTab !== "dashboard" && (
           <div className="mb-5">
             <button
@@ -2246,9 +2262,10 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 1. DASHBOARD ================= */}
+        {/* ================= 1. DASHBOARD (MATCHES IMAGE 1 DESIGN) ================= */}
         {activeTab === "dashboard" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* PROFILE SUMMARY CARD (Matches Image 1 Top Profile Card on Mobile & Left Sidebar on Desktop) */}
             <aside className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3.5">
@@ -2279,6 +2296,7 @@ export default function BCSPathPlatform() {
                   </div>
                 </div>
 
+                {/* Top Right Edit Button (Matches Image 1) */}
                 <button
                   onClick={() => setShowProfileEditModal(true)}
                   className="px-3 py-2 rounded-xl border border-purple-200 bg-purple-50/50 hover:bg-purple-100 text-[#3b0764] text-xs font-extrabold flex items-center gap-1.5 shrink-0 cursor-pointer"
@@ -2305,7 +2323,9 @@ export default function BCSPathPlatform() {
               </div>
             </aside>
 
+            {/* RIGHT MAIN AREA (8 Cols) */}
             <div className="lg:col-span-8 space-y-6">
+              {/* HERO BANNER WITH SHIELD & BOOKS ILLUSTRATION (Matches Image 1) */}
               <div className="relative rounded-3xl bg-gradient-to-br from-[#1e0b45] via-[#31105f] to-[#4c1d95] text-white p-6 sm:p-8 shadow-lg overflow-hidden">
                 <div className="grid grid-cols-12 items-center gap-4">
                   <div className="col-span-12 sm:col-span-8 space-y-4 z-10">
@@ -2317,6 +2337,7 @@ export default function BCSPathPlatform() {
                       লেকচার PDF, ২-কলাম Text View ও অধ্যায়ভিত্তিক Test 1 / Test 2
                     </h2>
 
+                    {/* 4 Info Stats Row (Matches Image 1) */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs font-bold text-purple-100">
                       <div className="flex items-center gap-1.5">
                         <FileText className="w-4 h-4 text-amber-400 shrink-0" />
@@ -2355,6 +2376,7 @@ export default function BCSPathPlatform() {
                     </div>
                   </div>
 
+                  {/* Right 3D Shield & Books Vector Illustration (Matches Image 1) */}
                   <div className="hidden sm:flex sm:col-span-4 justify-end">
                     <svg viewBox="0 0 180 160" className="w-40 h-36 drop-shadow-xl">
                       <rect x="20" y="115" width="130" height="22" rx="6" fill="#2563eb" />
@@ -2369,6 +2391,7 @@ export default function BCSPathPlatform() {
                 </div>
               </div>
 
+              {/* SUBJECTS LIST SECTION ("আপনার বিষয়সমূহ" - Matches Image 1) */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-black text-lg sm:text-xl text-slate-900 flex items-center gap-2">
@@ -2414,6 +2437,7 @@ export default function BCSPathPlatform() {
                               </span>
                             )}
 
+                            {/* Green Progress Bar (Matches Image 1) */}
                             <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-2.5 mb-1.5">
                               <div
                                 className="bg-emerald-500 h-full rounded-full transition-all duration-500"
@@ -2437,9 +2461,10 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 2. MOCK TEST HUB ================= */}
+        {/* ================= 2. MOCK TEST HUB (MATCHES IMAGE 2: TEST 1 READY & TEST 2 "🔒 শিগগির আসছে") ================= */}
         {activeTab === "mock_test_hub" && (
           <div className="max-w-4xl mx-auto space-y-6">
+            {/* Top Filter Card (Matches Image 2) */}
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-xs space-y-5">
               <div className="flex items-center gap-3.5 border-b border-slate-100 pb-4">
                 <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#4c1d95] flex items-center justify-center shrink-0">
@@ -2510,11 +2535,13 @@ export default function BCSPathPlatform() {
               </div>
             </div>
 
+            {/* Chapter Test Cards (Renders TEST 1 and TEST 2 side-by-side or stacked like Image 2!) */}
             {(() => {
               const targetSubObj =
                 currentCourseSubjects.find((s) => s.id === mockFilterSubject) ||
                 currentCourseSubjects[0];
 
+              // Gather all chapter numbers for the selected subject
               const lectureNumbers = Array.from(
                 new Set([
                   ...courseFilteredLectures
@@ -2603,6 +2630,7 @@ export default function BCSPathPlatform() {
                                 {chapterHeading}
                               </h3>
 
+                              {/* 4 Pill Badges (Matches Image 2) */}
                               <div className="flex flex-wrap gap-2 text-xs font-extrabold text-slate-700">
                                 <span className="px-3 py-1.5 rounded-xl bg-slate-100 flex items-center gap-1.5">
                                   <FileText className="w-3.5 h-3.5 text-[#4c1d95]" /> {qCount}টি প্রশ্ন
@@ -2653,9 +2681,10 @@ export default function BCSPathPlatform() {
           </div>
         )}
 
-        {/* ================= 3. QUESTION BANK HUB ================= */}
+        {/* ================= 3. QUESTION BANK HUB (MATCHES IMAGE 3: CARDS WITH DIRECT "PDF খুলুন" & "Text View" BUTTONS) ================= */}
         {activeTab === "qbank" && (
           <div className="max-w-5xl mx-auto space-y-6">
+            {/* Top Filter & View Toggle Card (Matches Image 3) */}
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-xs space-y-5">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-purple-100 text-[#4c1d95] flex items-center justify-center shrink-0">
@@ -2687,6 +2716,7 @@ export default function BCSPathPlatform() {
                 </select>
               </div>
 
+              {/* Segmented Toggle Bar (PDF View vs Text View - Matches Image 3) */}
               <div className="grid grid-cols-2 rounded-2xl bg-slate-100 p-1.5 border border-slate-200">
                 <button
                   onClick={() => setQbankViewMode("pdf")}
@@ -2711,6 +2741,7 @@ export default function BCSPathPlatform() {
               </div>
             </div>
 
+            {/* Question Bank List Header */}
             <div className="flex items-center justify-between">
               <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
                 <LayoutGrid className="w-5 h-5 text-[#4c1d95]" /> প্রশ্ন ব্যাংক তালিকা
@@ -2720,6 +2751,7 @@ export default function BCSPathPlatform() {
               </span>
             </div>
 
+            {/* Question Bank Cards with Direct "PDF খুলুন" & "Text View" Buttons (Matches Image 3) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {(courseFilteredQbankDocs.length > 0
                 ? courseFilteredQbankDocs
@@ -2783,6 +2815,7 @@ export default function BCSPathPlatform() {
               })}
             </div>
 
+            {/* Active Question Bank Reader Area */}
             {activeQbankDoc && (activeQbankDoc.pdfUrl || activeQbankDoc.textContent) && (
               <div ref={qbankReaderRef} className="bg-white rounded-3xl border border-slate-200 p-6 scroll-mt-20 space-y-4">
                 <div className="flex flex-wrap justify-between items-center gap-3 border-b pb-3">
@@ -2825,6 +2858,7 @@ export default function BCSPathPlatform() {
               </div>
             )}
 
+            {/* Bottom Tip Banner (Matches Image 3) */}
             <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200/80 text-center text-xs sm:text-sm font-extrabold text-[#3b0764] flex items-center justify-center gap-2">
               <Lightbulb className="w-4 h-4 text-purple-700 shrink-0" />
               <span>আপনার পছন্দের বিষয় নির্বাচন করে প্রশ্ন অনুশীলন শুরু করুন</span>
@@ -3461,22 +3495,6 @@ export default function BCSPathPlatform() {
             ) : (
               <div className="space-y-8">
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 space-y-5">
-                  {/* Hero Welcome Avatar Image Uploader right inside Admin Panel */}
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="font-extrabold text-sm text-slate-900">
-                        🖼️ “স্বাগতম! আপনার কোর্স সিলেক্ট করুন” ব্যানারের অ্যাভাটার ইমেজ পরিবর্তন করুন:
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        কম্পিউটার থেকে PNG/JPG ছবি আপলোড করুন অথবা প্রজেক্টের <code>public/hero-avatar.png</code> ফাইলে রাখুন।
-                      </p>
-                    </div>
-                    <label className="px-4 py-2.5 bg-[#2e1065] text-amber-300 rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5">
-                      <Upload className="w-4 h-4" /> কম্পিউটার থেকে অ্যাভাটার আপলোড করুন
-                      <input type="file" accept="image/*" onChange={handleHeroAvatarUploadFromComputer} className="hidden" />
-                    </label>
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div
                       onClick={() => handleAdminCourseSwitch("bcs")}
@@ -3505,7 +3523,7 @@ export default function BCSPathPlatform() {
                     </div>
                   </div>
 
-                  {/* Admin Module Tabs (Strictly hides 10-Day 200-MCQ & Vocab Stories when Defense is selected!) */}
+                  {/* Admin Module Tabs (Notice: 10-Day 200-MCQ & Vocab Stories ONLY show when adminCourseTrack === "bcs"!) */}
                   <div className="flex flex-wrap gap-2.5 pt-2 border-t">
                     <button
                       onClick={() => setAdminSection("lectures")}
@@ -3629,6 +3647,7 @@ export default function BCSPathPlatform() {
                           </div>
                         )}
 
+                        {/* 1. Main Lecture */}
                         <div className="p-5 rounded-2xl bg-blue-50/50 border-2 border-blue-200 space-y-4">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <h4 className="font-extrabold text-base text-blue-950">📘 ১. মূল লেকচার নোট (PDF + Text View)</h4>
@@ -3665,6 +3684,7 @@ export default function BCSPathPlatform() {
                           />
                         </div>
 
+                        {/* 2. Chapter All MCQs */}
                         <div className="p-5 rounded-2xl bg-emerald-50/50 border-2 border-emerald-200 space-y-4">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <h4 className="font-extrabold text-base text-emerald-950">📗 ২. “এই Chapter-এর সকল MCQ” (PDF + ২-কলাম Text View)</h4>
@@ -3701,6 +3721,7 @@ export default function BCSPathPlatform() {
                           />
                         </div>
 
+                        {/* 3. Written Q&A (Shown in BCS Track) */}
                         {adminCourseTrack === "bcs" && (
                           <div className="p-5 rounded-2xl bg-purple-50/50 border-2 border-purple-200 space-y-4">
                             <h4 className="font-extrabold text-base text-purple-950">📙 ৩. “লিখিত প্রশ্ন ও উত্তর” (PDF + Text View)</h4>
@@ -3735,11 +3756,15 @@ export default function BCSPathPlatform() {
                       </form>
                     </div>
 
+                    {/* RIGHT SIDEBAR: SUBJECT-FILTERED UPLOADED LECTURES LIST */}
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
                       <div>
                         <h4 className="font-extrabold text-base text-slate-900 flex items-center gap-1.5">
                           <Filter className="w-4 h-4 text-purple-700" /> সাবজেক্ট অনুযায়ী আপলোডকৃত লেকচার দেখুন
                         </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          সাবজেক্ট সিলেক্ট করলেই সেই সাবজেক্টের অধীনে কয়টি লেকচার আছে তা দেখাবে
+                        </p>
                       </div>
 
                       <select
@@ -3768,49 +3793,61 @@ export default function BCSPathPlatform() {
                         );
 
                         return (
-                          <div className="space-y-3 max-h-[700px] overflow-y-auto pr-1">
-                            {filteredAdminLecs.map((lec) => {
-                              const lKey = lec._id || lec.id;
-                              const subObj = [...bcsSubjects, ...defenseSubjects].find(
-                                (s) => s.id === lec.subjectId
-                              );
-                              return (
-                                <div key={lKey} className="p-4 rounded-2xl border bg-slate-50 space-y-2.5">
-                                  <div className="text-xs font-extrabold text-purple-800">
-                                    {subObj?.title || lec.subjectId} · Lec {lec.lectureNo}
+                          <>
+                            <div className="px-3.5 py-2 rounded-xl bg-purple-50 border border-purple-200 text-xs font-extrabold text-[#2e1065] flex justify-between">
+                              <span>নির্বাচিত সাবজেক্টের লেকচার সংখ্যা:</span>
+                              <span>{filteredAdminLecs.length}টি</span>
+                            </div>
+
+                            <div className="space-y-3 max-h-[700px] overflow-y-auto pr-1">
+                              {filteredAdminLecs.map((lec) => {
+                                const lKey = lec._id || lec.id;
+                                const subObj = [...bcsSubjects, ...defenseSubjects].find(
+                                  (s) => s.id === lec.subjectId
+                                );
+                                return (
+                                  <div key={lKey} className="p-4 rounded-2xl border bg-slate-50 space-y-2.5">
+                                    <div className="text-xs font-extrabold text-purple-800">
+                                      {subObj?.title || lec.subjectId} · Lec {lec.lectureNo}
+                                    </div>
+                                    <div className="font-extrabold text-sm text-slate-900">{lec.title}</div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleEditLectureClick(lec)}
+                                        className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-extrabold cursor-pointer hover:bg-blue-700"
+                                      >
+                                        এডিট
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteLecture(lKey)}
+                                        className="p-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl cursor-pointer hover:bg-rose-100"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
                                   </div>
-                                  <div className="font-extrabold text-sm text-slate-900">{lec.title}</div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleEditLectureClick(lec)}
-                                      className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-extrabold cursor-pointer hover:bg-blue-700"
-                                    >
-                                      এডিট
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteLecture(lKey)}
-                                      className="p-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl cursor-pointer hover:bg-rose-100"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                );
+                              })}
+                            </div>
+                          </>
                         );
                       })()}
                     </div>
                   </div>
                 )}
 
-                {/* ADMIN SECTION 2: STORY VOCABULARY BUILDER (BCS ONLY) */}
+                {/* ================= ADMIN SECTION 2: STORY VOCABULARY BUILDER (BCS ONLY) ================= */}
                 {adminCourseTrack === "bcs" && adminSection === "vocab_stories" && (
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 bg-white p-6 rounded-2xl border-2 border-violet-200 space-y-5">
-                      <h3 className="text-xl font-extrabold text-slate-900">
-                        📖 গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি স্টোরি আপলোড করুন (২টি ভিজ্যুয়াল ইমেজসহ)
-                      </h3>
+                      <div>
+                        <span className="px-3 py-1 rounded-full bg-violet-100 text-violet-900 text-xs font-extrabold">
+                          English Grammar Special Feature
+                        </span>
+                        <h3 className="text-xl font-extrabold text-slate-900 mt-1">
+                          📖 গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি স্টোরি আপলোড করুন (২টি ভিজ্যুয়াল ইমেজসহ)
+                        </h3>
+                      </div>
 
                       <form onSubmit={handleSaveVocabStory} className="space-y-5 text-sm">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -3827,6 +3864,7 @@ export default function BCSPathPlatform() {
                             <label className="font-extrabold block mb-1">গল্পের শিরোনাম (Story Title) *</label>
                             <input
                               type="text"
+                              placeholder="যেমন: Story 01: দ্য লস্ট কিংডম ও ৫০টি হাই-ফ্রিকোয়েন্সি বিসিএস ভোকাবুলারি"
                               value={vocabFormData.title}
                               onChange={(e) => setVocabFormData({ ...vocabFormData, title: e.target.value })}
                               className="w-full p-3 border rounded-xl font-bold"
@@ -3836,24 +3874,52 @@ export default function BCSPathPlatform() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-violet-50/60 border border-violet-200">
                           <div className="p-3.5 bg-white rounded-xl border space-y-2.5">
-                            <span className="font-extrabold text-xs text-violet-950 block">🖼️ স্টোরি ইমেজ ১</span>
+                            <div className="flex justify-between items-center">
+                              <span className="font-extrabold text-xs text-violet-950">🖼️ স্টোরি ইমেজ ১</span>
+                              <select
+                                value={vocabFormData.image1Position}
+                                onChange={(e) => setVocabFormData({ ...vocabFormData, image1Position: e.target.value })}
+                                className="text-xs font-bold border rounded px-2 py-1 bg-slate-50"
+                              >
+                                <option value="right">ডান পাশে (Right)</option>
+                                <option value="left">বাম পাশে (Left)</option>
+                                <option value="top">উপরে বড় (Top)</option>
+                              </select>
+                            </div>
                             <label className="w-full py-2 bg-violet-700 text-white rounded-lg text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5">
                               <Upload className="w-3.5 h-3.5" /> ইমেজ ১ আপলোড করুন
                               <input type="file" accept="image/*" onChange={(e) => handleVocabStoryImageUpload(e, "image1Url")} className="hidden" />
                             </label>
+                            {vocabFormData.image1Url && (
+                              <div className="text-[11px] font-bold text-emerald-700">✓ ইমেজ ১ যুক্ত হয়েছে</div>
+                            )}
                           </div>
 
                           <div className="p-3.5 bg-white rounded-xl border space-y-2.5">
-                            <span className="font-extrabold text-xs text-violet-950 block">🖼️ স্টোরি ইমেজ ২</span>
+                            <div className="flex justify-between items-center">
+                              <span className="font-extrabold text-xs text-violet-950">🖼️ স্টোরি ইমেজ ২</span>
+                              <select
+                                value={vocabFormData.image2Position}
+                                onChange={(e) => setVocabFormData({ ...vocabFormData, image2Position: e.target.value })}
+                                className="text-xs font-bold border rounded px-2 py-1 bg-slate-50"
+                              >
+                                <option value="left">বাম পাশে (Left)</option>
+                                <option value="right">ডান পাশে (Right)</option>
+                                <option value="bottom">নিচে বড় (Bottom)</option>
+                              </select>
+                            </div>
                             <label className="w-full py-2 bg-violet-700 text-white rounded-lg text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5">
                               <Upload className="w-3.5 h-3.5" /> ইমেজ ২ আপলোড করুন
                               <input type="file" accept="image/*" onChange={(e) => handleVocabStoryImageUpload(e, "image2Url")} className="hidden" />
                             </label>
+                            {vocabFormData.image2Url && (
+                              <div className="text-[11px] font-bold text-emerald-700">✓ ইমেজ ২ যুক্ত হয়েছে</div>
+                            )}
                           </div>
                         </div>
 
                         <RichTextColorEditor
-                          label="📖 মূল গল্পের টেক্সট"
+                          label="📖 মূল গল্পের টেক্সট (কালার গ্রেডিং, বোল্ড ও ফন্ট +/- করুন)"
                           value={vocabFormData.storyContent}
                           onChange={(val) => setVocabFormData({ ...vocabFormData, storyContent: val })}
                           embeddedImages={vocabFormData.embeddedImages}
@@ -3862,8 +3928,18 @@ export default function BCSPathPlatform() {
                           rows={7}
                         />
 
-                        <button type="submit" className="premium-btn w-full py-4 bg-violet-800 text-white rounded-2xl text-base font-black cursor-pointer">
-                          🚀 ভোকাবুলারি স্টোরি পাবলিশ করুন
+                        <RichTextColorEditor
+                          label="📝 শব্দের অর্থ ও Synonym/Antonym বক্স (গল্পের নিচে ২-কলামে দেখাবে)"
+                          value={vocabFormData.wordMeaningBox}
+                          onChange={(val) => setVocabFormData({ ...vocabFormData, wordMeaningBox: val })}
+                          embeddedImages={vocabFormData.embeddedImages}
+                          onUpdateImages={(imgs) => setVocabFormData({ ...vocabFormData, embeddedImages: imgs })}
+                          placeholder="গল্পে ব্যবহৃত ভোকাবুলারিগুলোর বাংলা অর্থ ও সিনোনিম এখানে দিন..."
+                          rows={4}
+                        />
+
+                        <button type="submit" className="premium-btn w-full py-4 bg-violet-800 text-white rounded-2xl text-base font-black hover:bg-violet-950 cursor-pointer shadow-lg">
+                          {editingVocabId ? "✓ স্টোরি আপডেট করুন" : "🚀 ভোকাবুলারি স্টোরি পাবলিশ করুন"}
                         </button>
                       </form>
                     </div>
@@ -3876,9 +3952,31 @@ export default function BCSPathPlatform() {
                           <div key={sId} className="p-3.5 rounded-xl border bg-slate-50 space-y-2">
                             <div className="text-xs font-extrabold text-violet-700">Story #{st.storyNo}</div>
                             <div className="font-extrabold text-sm">{st.title}</div>
-                            <button onClick={() => handleDeleteVocabStory(sId)} className="p-1.5 bg-rose-50 text-rose-600 border rounded-lg cursor-pointer">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingVocabId(sId);
+                                  setVocabFormData({
+                                    storyNo: st.storyNo,
+                                    title: st.title,
+                                    subtitle: st.subtitle || "",
+                                    storyContent: st.storyContent || "",
+                                    image1Url: st.image1Url || "",
+                                    image1Position: st.image1Position || "right",
+                                    image2Url: st.image2Url || "",
+                                    image2Position: st.image2Position || "left",
+                                    wordMeaningBox: st.wordMeaningBox || "",
+                                    embeddedImages: st.embeddedImages || {},
+                                  });
+                                }}
+                                className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer"
+                              >
+                                এডিট
+                              </button>
+                              <button onClick={() => handleDeleteVocabStory(sId)} className="p-1.5 bg-rose-50 text-rose-600 border rounded-lg cursor-pointer">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -3886,7 +3984,7 @@ export default function BCSPathPlatform() {
                   </div>
                 )}
 
-                {/* ADMIN SECTION 3: CHAPTER TEST 1 & TEST 2 BUILDER */}
+                {/* ================= ADMIN SECTION 3: CHAPTER TEST 1 & TEST 2 (50 QUESTIONS + BULK IMPORTER) ================= */}
                 {adminSection === "exam_builder" && (
                   <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-5">
                     <h3 className="text-xl font-extrabold">
@@ -3970,7 +4068,7 @@ export default function BCSPathPlatform() {
                         rows={3}
                         value={bulk50TextInput}
                         onChange={(e) => setBulk50TextInput(e.target.value)}
-                        placeholder="অথবা ডক ফাইল থেকে প্রশ্ন কপি করে এখানে পেস্ট করুন..."
+                        placeholder={`অথবা ডক ফাইল থেকে কপি করে এখানে পেস্ট করুন:\nQ: বাংলাদেশের প্রাচীনতম জনপদ কোনটি?\nA: পুণ্ড্র\nB: হরিকেল\nC: সমতট\nD: বঙ্গ\nAns: A\nExp: পুণ্ড্র হলো প্রাচীনতম জনপদ।`}
                         className="w-full p-3 border rounded-xl bg-white text-xs font-mono"
                       />
                       {bulk50TextInput.trim() && (
@@ -3979,39 +4077,79 @@ export default function BCSPathPlatform() {
                           onClick={() => handleBulkFill50Slots(bulk50TextInput)}
                           className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-extrabold cursor-pointer"
                         >
-                          ✓ টেক্সট থেকে স্লটে প্রশ্নগুলো বসিয়ে দিন
+                          ✓ টেক্সট থেকে ১-৫০ স্লটে প্রশ্নগুলো বসিয়ে দিন
                         </button>
                       )}
                     </div>
 
+                    <div className="flex flex-wrap gap-2 bg-slate-100 p-3 rounded-xl">
+                      {["1-10", "11-20", "21-30", "31-40", "41-50", "ALL"].map((rng) => (
+                        <button
+                          key={rng}
+                          type="button"
+                          onClick={() => setActiveSlotRange(rng)}
+                          className={`px-3.5 py-2 rounded-lg text-xs font-extrabold cursor-pointer ${
+                            activeSlotRange === rng ? "bg-slate-900 text-white" : "bg-white border"
+                          }`}
+                        >
+                          প্রশ্ন {rng}
+                        </button>
+                      ))}
+                    </div>
+
                     <form onSubmit={handlePublishExamSet} className="space-y-4">
-                      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-                        {template50Questions.slice(0, 50).map((slot) => (
-                          <div key={slot.qNo} className="p-4 rounded-2xl border bg-slate-50 space-y-2.5">
-                            <span className="px-2.5 py-1 rounded bg-slate-900 text-white text-xs font-black">
-                              প্রশ্ন #{slot.qNo}
-                            </span>
-                            <input
-                              type="text"
-                              placeholder={`প্রশ্ন #${slot.qNo} লিখুন...`}
-                              value={slot.question}
-                              onChange={(e) => updateTemplateSlot(slot.qNo, "question", e.target.value)}
-                              className="w-full p-2.5 border rounded-xl bg-white text-sm font-bold"
-                            />
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                              {["ক", "খ", "গ", "ঘ"].map((lbl, idx) => (
+                      <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                        {template50Questions
+                          .filter((item) => {
+                            if (activeSlotRange === "ALL") return true;
+                            const [min, max] = activeSlotRange.split("-").map(Number);
+                            return item.qNo >= min && item.qNo <= max;
+                          })
+                          .map((slot) => (
+                            <div key={slot.qNo} className="p-4 rounded-2xl border bg-slate-50 space-y-2.5">
+                              <span className="px-2.5 py-1 rounded bg-slate-900 text-white text-xs font-black">
+                                প্রশ্ন #{slot.qNo}
+                              </span>
+                              <input
+                                type="text"
+                                placeholder={`প্রশ্ন #${slot.qNo} লিখুন...`}
+                                value={slot.question}
+                                onChange={(e) => updateTemplateSlot(slot.qNo, "question", e.target.value)}
+                                className="w-full p-2.5 border rounded-xl bg-white text-sm font-bold"
+                              />
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {["ক", "খ", "গ", "ঘ"].map((lbl, idx) => (
+                                  <input
+                                    key={idx}
+                                    type="text"
+                                    placeholder={`অপশন ${lbl}`}
+                                    value={slot.options[idx]}
+                                    onChange={(e) => updateTemplateSlot(slot.qNo, "options", e.target.value, idx)}
+                                    className="p-2 border rounded-xl bg-white text-xs font-semibold"
+                                  />
+                                ))}
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <select
+                                  value={slot.correctAnswer}
+                                  onChange={(e) => updateTemplateSlot(slot.qNo, "correctAnswer", Number(e.target.value))}
+                                  className="p-2 border rounded-xl bg-white text-xs font-extrabold"
+                                >
+                                  <option value={0}>সঠিক: ক</option>
+                                  <option value={1}>সঠিক: খ</option>
+                                  <option value={2}>সঠিক: গ</option>
+                                  <option value={3}>সঠিক: ঘ</option>
+                                </select>
                                 <input
-                                  key={idx}
                                   type="text"
-                                  placeholder={`অপশন ${lbl}`}
-                                  value={slot.options[idx]}
-                                  onChange={(e) => updateTemplateSlot(slot.qNo, "options", e.target.value, idx)}
-                                  className="p-2 border rounded-xl bg-white text-xs font-semibold"
+                                  placeholder="ভুল উত্তরের ব্যাখ্যা..."
+                                  value={slot.explanation}
+                                  onChange={(e) => updateTemplateSlot(slot.qNo, "explanation", e.target.value)}
+                                  className="sm:col-span-2 p-2 border rounded-xl bg-white text-xs"
                                 />
-                              ))}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                       <button type="submit" className="premium-btn w-full py-4 bg-emerald-600 text-white rounded-2xl text-base font-black cursor-pointer">
                         🚀 Publish Test {examBuilderMeta.testNumber}
@@ -4020,7 +4158,7 @@ export default function BCSPathPlatform() {
                   </div>
                 )}
 
-                {/* ADMIN SECTION 4: 10-DAY 200-MCQ NATIONAL CONTEST BUILDER (STRICTLY BCS ONLY!) */}
+                {/* ================= ADMIN SECTION 4: 10-DAY 200-MCQ NATIONAL CONTEST BUILDER (STRICTLY BCS ONLY!) ================= */}
                 {adminCourseTrack === "bcs" && adminSection === "biweekly_200" && (
                   <div className="bg-white p-6 rounded-2xl border-2 border-amber-400 space-y-6">
                     <div>
@@ -4030,43 +4168,217 @@ export default function BCSPathPlatform() {
                       <h3 className="text-xl font-extrabold text-slate-900 mt-1">
                         🏆 বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড পরীক্ষা সেটআপ (১ - ২০০ নম্বর প্রশ্ন)
                       </h3>
+                      <p className="text-xs sm:text-sm text-slate-600">
+                        বাল্ক ফাইল বা ডক টেক্সট আপলোড করলেই ১–২৫, ২৬–৫০... ২০০ পর্যন্ত স্বয়ংক্রিয়ভাবে বসে যাবে এবং প্রতি ২৫টি প্রশ্নের জন্য সাবজেক্ট নির্ধারণ করে দিতে পারবেন।
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-sm">
+                      <div className="sm:col-span-2">
+                        <label className="font-extrabold block mb-1">পরীক্ষার শিরোনাম *</label>
+                        <input
+                          type="text"
+                          value={contestBuilderMeta.title}
+                          onChange={(e) => setContestBuilderMeta({ ...contestBuilderMeta, title: e.target.value })}
+                          className="w-full p-3 border rounded-xl bg-white font-bold"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <label className="flex items-center gap-2 p-3 rounded-xl bg-white border w-full cursor-pointer font-extrabold text-xs text-rose-700">
+                          <input
+                            type="checkbox"
+                            checked={contestBuilderMeta.resetSubmissions}
+                            onChange={(e) =>
+                              setContestBuilderMeta({ ...contestBuilderMeta, resetSubmissions: e.target.checked })
+                            }
+                          />
+                          <span>নতুন ১০ দিনের পর্ব শুরু করুন (আগের লিডারবোর্ড রিসেট)</span>
+                        </label>
+                      </div>
                     </div>
 
                     <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h4 className="font-extrabold text-sm sm:text-base text-amber-300 flex items-center gap-2">
-                          <FileSpreadsheet className="w-5 h-5" />
-                          ⚡ বাল্ক প্রশ্ন আপলোডার (১–২০০টি প্রশ্ন এক ক্লিকে বসান)
-                        </h4>
-                        <label className="px-4 py-2.5 bg-amber-400 text-slate-950 rounded-xl text-xs font-black cursor-pointer flex items-center gap-1.5">
-                          <Upload className="w-4 h-4" /> ২০০ প্রশ্নের ফাইল আপলোড
-                          <input
-                            type="file"
-                            accept=".txt,.json"
-                            onChange={(e) => handleBulkFileUploadForQuestions(e, "200_ALL")}
-                            className="hidden"
-                          />
-                        </label>
+                        <div>
+                          <h4 className="font-extrabold text-sm sm:text-base text-amber-300 flex items-center gap-2">
+                            <FileSpreadsheet className="w-5 h-5" />
+                            ⚡ বাল্ক প্রশ্ন আপলোডার (১–২০০টি প্রশ্ন অথবা বর্তমান ২৫টি প্রশ্নের ব্লক এক ক্লিকে বসান)
+                          </h4>
+                          <p className="text-xs text-slate-300 mt-0.5">
+                            ডক বা নোটপ্যাড ফাইল (.txt / .json) আপলোড করুন অথবা নিচে কপি-পেস্ট করুন—প্রশ্ন, অপশন, সঠিক উত্তর ও ব্যাখ্যা সঠিক পজিশনে বসে যাবে!
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <label className="px-4 py-2.5 bg-amber-400 text-slate-950 rounded-xl text-xs font-black cursor-pointer flex items-center gap-1.5">
+                            <Upload className="w-4 h-4" /> ২০০ প্রশ্নের ফাইল আপলোড
+                            <input
+                              type="file"
+                              accept=".txt,.json"
+                              onChange={(e) => handleBulkFileUploadForQuestions(e, "200_ALL")}
+                              className="hidden"
+                            />
+                          </label>
+                          <label className="px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-black cursor-pointer flex items-center gap-1.5">
+                            <Upload className="w-4 h-4" /> শুধু "{active200Range}" ব্লকে ফাইল আপলোড
+                            <input
+                              type="file"
+                              accept=".txt,.json"
+                              onChange={(e) => handleBulkFileUploadForQuestions(e, "200_BLOCK")}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
                       </div>
+
                       <textarea
-                        rows={3}
+                        rows={4}
                         value={bulk200TextInput}
                         onChange={(e) => setBulk200TextInput(e.target.value)}
-                        placeholder="ডক ফাইল থেকে প্রশ্ন কপি করে এখানে পেস্ট করুন..."
+                        placeholder={`ডক ফাইল থেকে প্রশ্ন কপি করে এখানে পেস্ট করুন (প্রতিটি প্রশ্নের মাঝে ১ লাইন ফাঁকা রাখুন):\n\nQ: চর্যাপদ কোন ছন্দে রচিত?\nA: মাত্রাবৃত্ত\nB: অক্ষরবৃত্ত\nC: স্বরবৃত্ত\nD: গদ্যছন্দ\nAns: A\nExp: আধুনিক ছন্দের বিচারে চর্যাপদ মাত্রাবৃত্ত ছন্দে রচিত।`}
                         className="w-full p-3 rounded-xl bg-slate-800 text-white border border-slate-700 text-xs font-mono outline-none"
                       />
+
                       {bulk200TextInput.trim() && (
-                        <button
-                          type="button"
-                          onClick={() => handleBulkFill200Slots(bulk200TextInput, "ALL")}
-                          className="px-4 py-2 bg-amber-400 text-slate-950 rounded-xl text-xs font-black cursor-pointer"
-                        >
-                          ✓ ১ থেকে ২০০ নম্বর স্লটে ধারাবাহিকভাবে বসান
-                        </button>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleBulkFill200Slots(bulk200TextInput, "CURRENT_25_BLOCK")}
+                            className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black cursor-pointer"
+                          >
+                            ✓ বর্তমান "{active200Range}" ব্লকের ২৫টি স্লটে বসান
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleBulkFill200Slots(bulk200TextInput, "ALL")}
+                            className="px-4 py-2 bg-amber-400 text-slate-950 rounded-xl text-xs font-black cursor-pointer"
+                          >
+                            ✓ ১ থেকে ২০০ নম্বর স্লটে ধারাবাহিকভাবে বসান
+                          </button>
+                        </div>
                       )}
                     </div>
 
+                    <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            "1-25",
+                            "26-50",
+                            "51-75",
+                            "76-100",
+                            "101-125",
+                            "126-150",
+                            "151-175",
+                            "176-200",
+                          ].map((rng) => (
+                            <button
+                              key={rng}
+                              type="button"
+                              onClick={() => setActive200Range(rng)}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition ${
+                                active200Range === rng
+                                  ? "bg-slate-900 text-amber-300 shadow-xs"
+                                  : "bg-white text-slate-800 border"
+                              }`}
+                            >
+                              প্রশ্ন {rng}
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-xs font-black text-amber-950">
+                          পূরণকৃত প্রশ্ন: {template200Questions.filter((q) => q.question.trim() !== "").length} / ২০০টি
+                        </span>
+                      </div>
+
+                      {(() => {
+                        const [minQ] = active200Range.split("-").map(Number);
+                        const currentBlockSample = template200Questions.find((q) => q.qNo === minQ);
+                        return (
+                          <div className="p-3.5 rounded-xl bg-white border-2 border-purple-300 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <span className="text-xs font-black text-[#2e1065] uppercase">
+                                📌 প্রশ্ন {active200Range} (এই ২৫টি প্রশ্নের সাবজেক্ট নির্ধারণ করুন):
+                              </span>
+                            </div>
+                            <select
+                              value={currentBlockSample?.subjectId || "bangla"}
+                              onChange={(e) => assignSubjectTo25Block(active200Range, e.target.value)}
+                              className="px-4 py-2.5 rounded-xl border-2 border-[#2e1065] bg-purple-50 text-[#2e1065] font-black text-xs sm:text-sm"
+                            >
+                              {bcsSubjects.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.title} (প্রশ্ন {active200Range})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
                     <form onSubmit={handlePublish200Contest} className="space-y-4">
+                      <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                        {template200Questions
+                          .filter((item) => {
+                            const [min, max] = active200Range.split("-").map(Number);
+                            return item.qNo >= min && item.qNo <= max;
+                          })
+                          .map((slot) => (
+                            <div key={slot.qNo} className="p-4 rounded-2xl border bg-slate-50 space-y-2.5">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="px-3 py-1 rounded-lg bg-slate-900 text-amber-300 text-xs font-black">
+                                  জাতীয় পরীক্ষা · প্রশ্ন #{slot.qNo}
+                                </span>
+                                <span className="px-3 py-1 rounded-lg bg-purple-100 text-[#2e1065] text-xs font-extrabold">
+                                  সাবজেক্ট: {slot.subjectTitle}
+                                </span>
+                              </div>
+
+                              <input
+                                type="text"
+                                placeholder={`প্রশ্ন #${slot.qNo} এখানে লিখুন...`}
+                                value={slot.question}
+                                onChange={(e) => update200TemplateSlot(slot.qNo, "question", e.target.value)}
+                                className="w-full p-2.5 border rounded-xl bg-white text-sm font-bold"
+                              />
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {["ক", "খ", "গ", "ঘ"].map((lbl, idx) => (
+                                  <input
+                                    key={idx}
+                                    type="text"
+                                    placeholder={`অপশন ${lbl}`}
+                                    value={slot.options[idx]}
+                                    onChange={(e) => update200TemplateSlot(slot.qNo, "options", e.target.value, idx)}
+                                    className="p-2 border rounded-xl bg-white text-xs font-semibold"
+                                  />
+                                ))}
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <select
+                                  value={slot.correctAnswer}
+                                  onChange={(e) => update200TemplateSlot(slot.qNo, "correctAnswer", Number(e.target.value))}
+                                  className="p-2 border rounded-xl bg-white text-xs font-extrabold text-emerald-800"
+                                >
+                                  <option value={0}>সঠিক উত্তর: ক</option>
+                                  <option value={1}>সঠিক উত্তর: খ</option>
+                                  <option value={2}>সঠিক উত্তর: গ</option>
+                                  <option value={3}>সঠিক উত্তর: ঘ</option>
+                                </select>
+                                <input
+                                  type="text"
+                                  placeholder="ভুল উত্তরের ব্যাখ্যা লিখুন..."
+                                  value={slot.explanation}
+                                  onChange={(e) => update200TemplateSlot(slot.qNo, "explanation", e.target.value)}
+                                  className="sm:col-span-2 p-2 border rounded-xl bg-white text-xs"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+
                       <button type="submit" className="premium-btn w-full py-4 bg-amber-400 text-slate-950 rounded-2xl text-base font-black hover:bg-amber-300 cursor-pointer shadow-lg">
                         🚀 ১০ দিনের জাতীয় বিসিএস পরীক্ষা (২০০ MCQ) Publish করুন
                       </button>
@@ -4091,7 +4403,7 @@ export default function BCSPathPlatform() {
                         </select>
                         <input
                           type="text"
-                          placeholder="উপ-শিরোনাম (যেমন: প্রশ্ন ব্যাংক ও সমাধান)"
+                          placeholder="ব্যাচ বা উপ-শিরোনাম (যেমন: প্রশ্ন ব্যাংক ও সমাধান)"
                           value={qbFormData.bcsBatch}
                           onChange={(e) => setQbFormData({ ...qbFormData, bcsBatch: e.target.value })}
                           className="p-3 border rounded-xl font-semibold"
@@ -4139,7 +4451,7 @@ export default function BCSPathPlatform() {
         )}
       </main>
 
-      {/* MOBILE STICKY BOTTOM NAVIGATION BAR */}
+      {/* ================= MOBILE STICKY BOTTOM NAVIGATION BAR (MATCHES IMAGE 2) ================= */}
       <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 h-16 px-6 flex md:hidden items-center justify-around z-40 shadow-lg">
         <button
           onClick={() => navigateTo("dashboard")}
@@ -4149,6 +4461,7 @@ export default function BCSPathPlatform() {
         >
           <Home className="w-5 h-5" />
           <span>হোম</span>
+          {activeTab === "dashboard" && <span className="w-1.5 h-1.5 rounded-full bg-[#4c1d95]" />}
         </button>
 
         <button
@@ -4159,6 +4472,7 @@ export default function BCSPathPlatform() {
         >
           <PlayCircle className="w-5 h-5" />
           <span>লেকচার</span>
+          {activeTab === "subject_lectures" && <span className="w-1.5 h-1.5 rounded-full bg-[#4c1d95]" />}
         </button>
 
         <button
@@ -4169,6 +4483,9 @@ export default function BCSPathPlatform() {
         >
           <FileText className="w-5 h-5" />
           <span>পরীক্ষা</span>
+          {(activeTab === "mock_test_hub" || activeTab === "active_exam_room") && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4c1d95]" />
+          )}
         </button>
 
         <button
@@ -4180,7 +4497,7 @@ export default function BCSPathPlatform() {
         </button>
       </nav>
 
-      {/* 10-DAY NATIONAL EXAM REGISTRATION MODAL */}
+      {/* ================= 10-DAY NATIONAL EXAM REGISTRATION MODAL ================= */}
       {showContestRegModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 border-2 border-[#2e1065]">
@@ -4191,6 +4508,9 @@ export default function BCSPathPlatform() {
               <h3 className="text-xl font-black text-slate-900 mt-2">
                 📝 পরীক্ষার রেজিস্ট্রেশন সম্পন্ন করুন
               </h3>
+              <p className="text-xs text-slate-600 mt-1">
+                রেজিস্টার করলেই আপনার সামনে ২০০ প্রশ্নের এক্সাম পেপার ওপেন হবে এবং লিডারবোর্ডে আপনার নাম ও প্রতিষ্ঠান যুক্ত হবে।
+              </p>
             </div>
 
             <form onSubmit={handleContestRegistrationSubmit} className="space-y-3.5 text-sm">
@@ -4199,6 +4519,7 @@ export default function BCSPathPlatform() {
                 <input
                   type="text"
                   required
+                  placeholder="যেমন: Amir Hamza"
                   value={contestRegForm.name}
                   onChange={(e) => setContestRegForm({ ...contestRegForm, name: e.target.value })}
                   className="w-full p-3 border border-slate-300 rounded-xl font-bold"
@@ -4210,6 +4531,7 @@ export default function BCSPathPlatform() {
                 <input
                   type="tel"
                   required
+                  placeholder="যেমন: 017XXXXXXXX"
                   value={contestRegForm.phone}
                   onChange={(e) => setContestRegForm({ ...contestRegForm, phone: e.target.value })}
                   className="w-full p-3 border border-slate-300 rounded-xl font-bold"
@@ -4217,10 +4539,11 @@ export default function BCSPathPlatform() {
               </div>
 
               <div>
-                <label className="font-extrabold block mb-1 text-slate-800">৩. শিক্ষাপ্রতিষ্ঠান *</label>
+                <label className="font-extrabold block mb-1 text-slate-800">৩. শিক্ষাপ্রতিষ্ঠান (বিশ্ববিদ্যালয় / কলেজ) *</label>
                 <input
                   type="text"
                   required
+                  placeholder="যেমন: Metropolitan University, Sylhet"
                   value={contestRegForm.institution}
                   onChange={(e) => setContestRegForm({ ...contestRegForm, institution: e.target.value })}
                   className="w-full p-3 border border-slate-300 rounded-xl font-bold"
