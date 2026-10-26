@@ -1,4 +1,3 @@
-
 /**
  * ============================================================================
  * FILE: src/models/PlatformModels.js
@@ -10,8 +9,7 @@ import mongoose from "mongoose";
 
 /**
  * 1. LECTURE SCHEMA
- * Includes `embeddedImages` map so Admin Rich Text Editor only shows clean
- * shortcodes like `[[IMG_1:right]]` instead of huge Base64 strings!
+ * Supports clean Short-Token Images ({{IMG_1:right}}) stored in embeddedImages map
  */
 const LectureSchema = new mongoose.Schema({
   courseType: { type: String, default: "bcs" },
@@ -34,7 +32,7 @@ const LectureSchema = new mongoose.Schema({
   mcqTextContent: { type: String, default: "" },
   writtenTextContent: { type: String, default: "" },
 
-  // Stores Base64/URLs mapped to shortcodes like IMG_1, IMG_2 so textarea stays clean
+  // Stores Base64 images cleanly by token key (e.g. { IMG_1: "data:image/..." }) so editor text stays clean!
   embeddedImages: { type: Object, default: {} },
 
   mcqTwoColumn: { type: Boolean, default: true },
@@ -43,7 +41,7 @@ const LectureSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 /**
- * 2. VOCABULARY STORY SCHEMA
+ * 2. VOCABULARY STORY SCHEMA ("গল্পে গল্পে বিসিএস স্ট্যান্ডার্ড ভোকাবুলারি শিখুন")
  */
 const VocabStorySchema = new mongoose.Schema({
   storyNo: { type: Number, required: true },
@@ -95,20 +93,20 @@ const ExamSetSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 /**
- * 5. 10-DAY NATIONAL BCS COMBINED 200-MCQ LIVE EXAM & LEADERBOARD SCHEMA
- * - Scheduled on the 10th, 20th, and 28th/29th/30th of every month.
- * - Includes Registration List, Subject-wise 25-Question Tagging, and Subject Weakness Analytics.
+ * 5. 10-DAY NATIONAL BCS COMBINED 200-MCQ LIVE EXAM (10th, 20th & Last Day of Month)
+ * Includes Registration List, Subject-wise 25-Question Tagging & Subject Weakness Breakdown
  */
 const BiWeeklyContestSchema = new mongoose.Schema({
   contestId: { type: String, required: true, unique: true },
   title: { type: String, required: true },
-  examWindowText: { type: String, default: "প্রতি ১০ দিনে ১টি জাতীয় বিসিএস প্রিলিমিনারি পরীক্ষা (মাসে ৩টি: ১০, ২০ ও ৩০ তারিখ)" },
+  examWindowText: { type: String, default: "প্রতি ১০ দিনে ১টি জাতীয় বিসিএস প্রিলিমিনারি পরীক্ষা (মাসে ৩টি: ১০, ২০ ও মাসের শেষ তারিখ)" },
   isActive: { type: Boolean, default: true },
   questions: [
     {
       qNo: { type: Number, required: true }, // 1 to 200
-      subjectId: { type: String, default: "bangla" }, // Subject tag for 25-question blocks
-      category: { type: String, default: "general" }, // "english" | "math" | "general" (for tie-breaker)
+      subjectId: { type: String, default: "bangla" }, // Assigned per 25-question block
+      subjectTitle: { type: String, default: "বাংলা ভাষা ও সাহিত্য" },
+      category: { type: String, default: "general" }, // "english" | "math" | "general" for tie-breaker
       question: { type: String, required: true },
       options: [{ type: String }],
       correctAnswer: { type: Number, default: 0 },
@@ -118,8 +116,8 @@ const BiWeeklyContestSchema = new mongoose.Schema({
   registrations: [
     {
       studentKey: { type: String, required: true },
-      name: { type: String, required: true },
       phone: { type: String, required: true },
+      name: { type: String, required: true },
       institution: { type: String, required: true },
       registeredAt: { type: Date, default: Date.now },
     },
@@ -127,8 +125,8 @@ const BiWeeklyContestSchema = new mongoose.Schema({
   submissions: [
     {
       studentKey: { type: String, required: true },
-      name: { type: String, required: true },
       phone: { type: String, default: "" },
+      name: { type: String, required: true },
       institution: { type: String, default: "" },
       avatarUrl: { type: String, default: "" },
       totalScore: { type: Number, required: true },
@@ -137,8 +135,8 @@ const BiWeeklyContestSchema = new mongoose.Schema({
       correctCount: { type: Number, default: 0 },
       wrongCount: { type: Number, default: 0 },
       negativePenalty: { type: Number, default: 0 },
-      subjectBreakdown: { type: Object, default: {} }, // Per-subject marks & wrong count
-      weakSubjects: [{ type: String }], // Weak subject titles
+      subjectBreakdown: { type: Array, default: [] }, // [{ subjectId, subjectTitle, total, correct, wrong, marks }]
+      weakSubjects: [{ type: String }], // Names of subjects where student scored < 50% or made most mistakes
       answersMap: { type: Object, default: {} },
       submittedAt: { type: Date, default: Date.now },
     },

@@ -1,10 +1,7 @@
-
-
 /**
  * ============================================================================
  * FILE: src/app/api/platform/route.js
- * PURPOSE: Central REST API supporting 10-Day Contest Registration, Bulk 200-Q
- *          Uploads, Subject Weakness Analytics, and Shortcode Image Storage.
+ * PURPOSE: REST API for Lectures, Vocab Stories, Exam Sets, and 10-Day 200-MCQ Exam
  * ============================================================================
  */
 
@@ -60,40 +57,34 @@ export async function POST(req) {
       return NextResponse.json({ success: true, data: profile });
     }
 
-    // 2. Public Student Action: Register for 10-Day 200-MCQ National Exam
-    if (action === "REGISTER_CONTEST") {
-      const { contestId, studentKey, name, phone, institution } = payload;
+    // 2. Public Student Action: Register for 10-Day 200-MCQ National Exam (Phone, Name, Institution)
+    if (action === "REGISTER_CONTEST_EXAM") {
+      const { contestId, studentKey, phone, name, institution } = payload;
       let contest = await BiWeeklyContest.findOne({ contestId: contestId || "bcs-biweekly-main" });
+
       if (!contest) {
         contest = await BiWeeklyContest.create({
-          contestId: "bcs-biweekly-main",
+          contestId: contestId || "bcs-biweekly-main",
           title: "৪৭তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড পরীক্ষা (২০০ এমসিকিউ)",
           questions: [],
-          registrations: [],
+          registrations: [{ studentKey, phone, name, institution }],
           submissions: [],
         });
-      }
-
-      const existingRegIndex = contest.registrations.findIndex(
-        (r) => r.studentKey === studentKey || r.phone === phone
-      );
-      if (existingRegIndex === -1) {
-        contest.registrations.push({ studentKey, name, phone, institution });
       } else {
-        contest.registrations[existingRegIndex] = {
-          studentKey,
-          name,
-          phone,
-          institution,
-          registeredAt: new Date(),
-        };
+        const existingIdx = contest.registrations.findIndex(
+          (r) => r.studentKey === studentKey || r.phone === phone
+        );
+        if (existingIdx > -1) {
+          contest.registrations[existingIdx] = { studentKey, phone, name, institution, registeredAt: new Date() };
+        } else {
+          contest.registrations.push({ studentKey, phone, name, institution });
+        }
+        await contest.save();
       }
-      await contest.save();
       return NextResponse.json({ success: true, data: contest });
     }
 
-    // 3. Public Student Action: Submit 10-Day 200-MCQ Exam
-    // Keeps student's Leaderboard rank active until their next exam submission!
+    // 3. Public Student Action: Submit 10-Day 200-MCQ National BCS Exam (One attempt per cycle)
     if (action === "SUBMIT_CONTEST_EXAM") {
       const { contestId, submission } = payload;
       const contest = await BiWeeklyContest.findOne({ contestId });
@@ -102,13 +93,15 @@ export async function POST(req) {
       }
 
       const alreadyTaken = contest.submissions.some(
-        (sub) => sub.studentKey === submission.studentKey || (submission.phone && sub.phone === submission.phone)
+        (sub) =>
+          sub.studentKey === submission.studentKey ||
+          (submission.phone && sub.phone === submission.phone)
       );
       if (alreadyTaken) {
         return NextResponse.json(
           {
             success: false,
-            error: "আপনি ইতিমধ্যে এই পর্বের পরীক্ষায় অংশগ্রহণ করেছেন! পরবর্তী ১০ দিনের পরীক্ষার আগ পর্যন্ত আপনার এই পজিশনই লিডারবোর্ডে থাকবে।",
+            error: "আপনি ইতিমধ্যে এই ১০ দিনের পর্বের পরীক্ষায় অংশগ্রহণ করেছেন! পরবর্তী পরীক্ষার আগে পুনরায় দেওয়া যাবে না।",
           },
           { status: 400 }
         );
@@ -125,7 +118,6 @@ export async function POST(req) {
       return NextResponse.json({ success: false, error: "ভুল অ্যাডমিন পিন!" }, { status: 401 });
     }
 
-    // 4. Lecture Save / Delete
     if (action === "SAVE_LECTURE") {
       if (payload._id) {
         const updated = await Lecture.findByIdAndUpdate(payload._id, payload, { new: true });
@@ -141,7 +133,6 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // 5. Vocabulary Story Save / Delete
     if (action === "SAVE_VOCAB_STORY") {
       if (payload._id) {
         const updated = await VocabStory.findByIdAndUpdate(payload._id, payload, { new: true });
@@ -157,7 +148,6 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // 6. Question Bank Document Save / Delete
     if (action === "SAVE_QBANK_DOC") {
       if (payload._id) {
         const updated = await QuestionBankDoc.findByIdAndUpdate(payload._id, payload, { new: true });
@@ -173,7 +163,6 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // 7. Save Chapter Test 1 & Test 2 (50 Questions)
     if (action === "SAVE_EXAM_SET") {
       const { courseType, subjectId, lectureNo, testNumber, chapterName, title, questions } = payload;
       const validQuestions = (questions || []).filter((q) => q.question && q.question.trim() !== "");
@@ -212,7 +201,8 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // 8. Publish / Update 10-Day 200-MCQ National Contest
+    // Publish / Update 10-Day 200-MCQ National Contest Exam
+    // Keeps existing leaderboard intact UNLESS Admin checks resetSubmissions for a new 10-day cycle!
     if (action === "SAVE_BIWEEKLY_CONTEST") {
       const { contestId, title, examWindowText, questions, resetSubmissions } = payload;
       const validQuestions = (questions || []).filter((q) => q.question && q.question.trim() !== "");
@@ -226,8 +216,8 @@ export async function POST(req) {
 
       const updateData = {
         contestId: contestId || "bcs-biweekly-main",
-        title: title || "৪৭তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড পরীক্ষা (২০০ এমসিকিউ)",
-        examWindowText: examWindowText || "প্রতি ১০ দিনে ১টি জাতীয় মেধা যাচাই পরীক্ষা (১০, ২০ ও ৩০ তারিখ)",
+        title: title || "৪৭তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড প্রিলিমিনারি পরীক্ষা (২০০ নম্বর)",
+        examWindowText: examWindowText || "প্রতি ১০ দিনে ১টি জাতীয় মেধা যাচাই পরীক্ষা (১০, ২০ ও মাসের শেষ তারিখ)",
         isActive: true,
         questions: validQuestions,
       };
