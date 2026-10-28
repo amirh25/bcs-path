@@ -1,7 +1,8 @@
 /**
  * ============================================================================
  * FILE: src/app/api/platform/route.js
- * PURPOSE: REST API for Lectures, Vocab Stories, Exam Sets, and 10-Day 200-MCQ Exam
+ * PURPOSE: REST API for Lectures, Vocab Stories, Exam Sets, Weekly Live Exam,
+ *          Job Update News ("চাকরির আপডেট খবর") & Bonus Content ("Bonus")
  * ============================================================================
  */
 
@@ -14,6 +15,8 @@ import {
   ExamSet,
   BiWeeklyContest,
   StudentProfile,
+  JobUpdateNews,
+  BonusItem,
 } from "@/models/PlatformModels";
 
 export async function GET() {
@@ -25,6 +28,8 @@ export async function GET() {
     const qbankDocs = await QuestionBankDoc.find().sort({ createdAt: -1 });
     const examSets = await ExamSet.find().sort({ lectureNo: 1, testNumber: 1 });
     const contests = await BiWeeklyContest.find().sort({ createdAt: -1 });
+    const jobUpdates = await JobUpdateNews.find().sort({ createdAt: -1 });
+    const bonusItems = await BonusItem.find().sort({ createdAt: -1 });
     const studentsCount = await StudentProfile.countDocuments();
 
     return NextResponse.json({
@@ -34,6 +39,8 @@ export async function GET() {
       qbankDocs,
       examSets,
       contests,
+      jobUpdates,
+      bonusItems,
       studentsCount: studentsCount || 1,
     });
   } catch (error) {
@@ -47,27 +54,49 @@ export async function POST(req) {
     const body = await req.json();
     const { action, adminPin, payload } = body;
 
-    // 1. Public Student Action: Save Profile
+    // 1. Public Student Action: Save Profile & Sync Avatar on Leaderboard
     if (action === "SAVE_PROFILE") {
       const profile = await StudentProfile.findOneAndUpdate(
         { phone: payload.phone || "student_default" },
         payload,
         { upsert: true, new: true }
       );
+
+      // Keep student's avatar & name updated in active Weekly Live Exam leaderboard
+      if (payload.avatarUrl || payload.name) {
+        const activeContest = await BiWeeklyContest.findOne({ contestId: "bcs-biweekly-main" });
+        if (activeContest && activeContest.submissions?.length > 0) {
+          let modified = false;
+          activeContest.submissions.forEach((sub) => {
+            if (
+              (payload.studentKey && sub.studentKey === payload.studentKey) ||
+              (payload.phone && sub.phone === payload.phone)
+            ) {
+              if (payload.avatarUrl) sub.avatarUrl = payload.avatarUrl;
+              if (payload.name) sub.name = payload.name;
+              if (payload.institution !== undefined) sub.institution = payload.institution;
+              modified = true;
+            }
+          });
+          if (modified) await activeContest.save();
+        }
+      }
+
       return NextResponse.json({ success: true, data: profile });
     }
 
-    // 2. Public Student Action: Register for 10-Day 200-MCQ National Exam (Phone, Name, Institution)
+    // 2. Public Student Action: Register for Weekly Live Exam (With Mobile Banking Selection)
     if (action === "REGISTER_CONTEST_EXAM") {
-      const { contestId, studentKey, phone, name, institution } = payload;
+      const { contestId, studentKey, phone, name, institution, paymentMethod } = payload;
       let contest = await BiWeeklyContest.findOne({ contestId: contestId || "bcs-biweekly-main" });
 
       if (!contest) {
         contest = await BiWeeklyContest.create({
           contestId: contestId || "bcs-biweekly-main",
-          title: "৪৭তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড পরীক্ষা (২০০ এমসিকিউ)",
+          title: "৫২ তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড পরীক্ষা (২০০ এমসিকিউ)",
+          examWindowText: "এক পরীক্ষা, সারা বাংলাদেশ, এক লিডারবোর্ড",
           questions: [],
-          registrations: [{ studentKey, phone, name, institution }],
+          registrations: [{ studentKey, phone, name, institution, paymentMethod: paymentMethod || "bkash" }],
           submissions: [],
         });
       } else {
@@ -75,21 +104,34 @@ export async function POST(req) {
           (r) => r.studentKey === studentKey || r.phone === phone
         );
         if (existingIdx > -1) {
-          contest.registrations[existingIdx] = { studentKey, phone, name, institution, registeredAt: new Date() };
+          contest.registrations[existingIdx] = {
+            studentKey,
+            phone,
+            name,
+            institution,
+            paymentMethod: paymentMethod || "bkash",
+            registeredAt: new Date(),
+          };
         } else {
-          contest.registrations.push({ studentKey, phone, name, institution });
+          contest.registrations.push({
+            studentKey,
+            phone,
+            name,
+            institution,
+            paymentMethod: paymentMethod || "bkash",
+          });
         }
         await contest.save();
       }
       return NextResponse.json({ success: true, data: contest });
     }
 
-    // 3. Public Student Action: Submit 10-Day 200-MCQ National BCS Exam (One attempt per cycle)
+    // 3. Public Student Action: Submit Weekly Live Exam (One attempt per cycle)
     if (action === "SUBMIT_CONTEST_EXAM") {
       const { contestId, submission } = payload;
       const contest = await BiWeeklyContest.findOne({ contestId });
       if (!contest) {
-        return NextResponse.json({ success: false, error: "পরীক্ষাটি পাওয়া যায়নি!" }, { status: 404 });
+        return NextResponse.json({ success: false, error: "পরীক্ষাটি পাওয়া যায়নি!" }, { status: 404 });
       }
 
       const alreadyTaken = contest.submissions.some(
@@ -101,7 +143,7 @@ export async function POST(req) {
         return NextResponse.json(
           {
             success: false,
-            error: "আপনি ইতিমধ্যে এই ১০ দিনের পর্বের পরীক্ষায় অংশগ্রহণ করেছেন! পরবর্তী পরীক্ষার আগে পুনরায় দেওয়া যাবে না।",
+            error: "আপনি ইতিমধ্যে এই সপ্তাহের লাইভ পরীক্ষায় অংশগ্রহণ করেছেন! পরবর্তী শুক্রবারের পরীক্ষার আগে পুনরায় দেওয়া যাবে না।",
           },
           { status: 400 }
         );
@@ -201,8 +243,6 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    // Publish / Update 10-Day 200-MCQ National Contest Exam
-    // Keeps existing leaderboard intact UNLESS Admin checks resetSubmissions for a new 10-day cycle!
     if (action === "SAVE_BIWEEKLY_CONTEST") {
       const { contestId, title, examWindowText, questions, resetSubmissions } = payload;
       const validQuestions = (questions || []).filter((q) => q.question && q.question.trim() !== "");
@@ -216,8 +256,8 @@ export async function POST(req) {
 
       const updateData = {
         contestId: contestId || "bcs-biweekly-main",
-        title: title || "৪৭তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড প্রিলিমিনারি পরীক্ষা (২০০ নম্বর)",
-        examWindowText: examWindowText || "প্রতি ১০ দিনে ১টি জাতীয় মেধা যাচাই পরীক্ষা (১০, ২০ ও মাসের শেষ তারিখ)",
+        title: title || "৫২ তম বিসিএস স্ট্যান্ডার্ড অল সাবজেক্টস কম্বাইনড পরীক্ষা (২০০ এমসিকিউ)",
+        examWindowText: examWindowText || "এক পরীক্ষা, সারা বাংলাদেশ, এক লিডারবোর্ড",
         isActive: true,
         questions: validQuestions,
       };
@@ -234,6 +274,38 @@ export async function POST(req) {
       );
 
       return NextResponse.json({ success: true, data: savedContest });
+    }
+
+    // Save or Update Daily Job News ("চাকরির আপডেট খবর")
+    if (action === "SAVE_JOB_NEWS") {
+      if (payload._id) {
+        const updated = await JobUpdateNews.findByIdAndUpdate(payload._id, payload, { new: true });
+        return NextResponse.json({ success: true, data: updated });
+      } else {
+        const created = await JobUpdateNews.create(payload);
+        return NextResponse.json({ success: true, data: created });
+      }
+    }
+
+    if (action === "DELETE_JOB_NEWS") {
+      await JobUpdateNews.findByIdAndDelete(payload.id);
+      return NextResponse.json({ success: true });
+    }
+
+    // Save or Update Bonus Content ("Bonus")
+    if (action === "SAVE_BONUS_ITEM") {
+      if (payload._id) {
+        const updated = await BonusItem.findByIdAndUpdate(payload._id, payload, { new: true });
+        return NextResponse.json({ success: true, data: updated });
+      } else {
+        const created = await BonusItem.create(payload);
+        return NextResponse.json({ success: true, data: created });
+      }
+    }
+
+    if (action === "DELETE_BONUS_ITEM") {
+      await BonusItem.findByIdAndDelete(payload.id);
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ success: false, error: "Invalid Action" }, { status: 400 });

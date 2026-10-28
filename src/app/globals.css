@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: light only !important;
 }
 
 @theme inline {
@@ -12,40 +13,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-:root {
-  color-scheme: light only !important;
-}
-
 html, body {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
-}
-
-:root {
-  color-scheme: light only !important;
-}
-
-html, body {
-  background-color: #f8fafc !important;
+  background-color: #f4f6fb !important;
   color: #0f172a !important;
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 /* World-Class Micro-Interactions & Smooth Card Hover Animations */
@@ -54,7 +28,7 @@ html, body {
 }
 .premium-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 32px -10px rgba(30, 27, 75, 0.14), 0 4px 10px -4px rgba(30, 27, 75, 0.06);
+  box-shadow: 0 16px 32px -10px rgba(30, 27, 75, 0.18), 0 4px 10px -4px rgba(30, 27, 75, 0.08);
 }
 
 .premium-btn {
@@ -62,8 +36,23 @@ html, body {
 }
 .premium-btn:hover {
   transform: translateY(-2px);
-  filter: brightness(1.05);
+  filter: brightness(1.06);
 }
 .premium-btn:active {
   transform: translateY(0px) scale(0.98);
+}
+
+/* Subtle Continuous Zoom-In & Zoom-Out for Weekly Live Exam Countdown Box */
+@keyframes softZoomInOut {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.024);
+  }
+}
+
+.soft-zoom-pulse {
+  animation: softZoomInOut 3.2s ease-in-out infinite;
+  will-change: transform;
 }
