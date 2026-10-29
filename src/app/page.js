@@ -144,13 +144,13 @@ const FULL_BCS_SUBJECTS = [
 const DEFENSE_COURSES_CATALOG = {
   def_police_trc: {
     id: "def_police_trc",
-    title: "পুলিশ কনস্টেবল (TRC)",
+    title: "পুলিশ কনস্টেবল",
     fullTitle: "বাংলাদেশ পুলিশ — ট্রেইনি রিক্রুট কনস্টেবল (TRC)",
     shortDesc: "বাংলাদেশ পুলিশে কনস্টেবল পদে নিয়োগ পরীক্ষার সম্পূর্ণ প্রস্তুতি কোর্স।",
-    badgeText: "জনপ্রিয়",
-    badgeColor: "bg-rose-600 text-white",
-    cardTheme: "from-[#0b1938] via-[#0f295c] to-[#0a1530] border-blue-500/60",
-    btnColor: "bg-blue-600 hover:bg-blue-500 text-white",
+    badgeText: "🔥 জনপ্রিয়",
+    badgeColor: "bg-gradient-to-r from-rose-600 to-red-500 text-white",
+    cardTheme: "from-[#071636] via-[#0c2454] to-[#061029] border-blue-500/50",
+    btnColor: "bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white",
     targetLabel: "লক্ষ্য: বাংলাদেশ পুলিশ",
     examSummary: "লিখিত পরীক্ষা: ৪০ নম্বর • ভাইভা ও মনস্তত্ত্ব: ২০ নম্বর",
     officialNote:
@@ -169,14 +169,12 @@ const DEFENSE_COURSES_CATALOG = {
           {
             topic: "বাংলা ব্যাকরণ (বানান, সন্ধি, সমাস, কারক ও বাগধারা)",
             marks: "লিখিত অংশ",
-            details:
-              "কনস্টেবল লিখিত পরীক্ষার জন্য এক কথায় প্রকাশ, বাগধারা, সন্ধি বিচ্ছেদ, কারক-বিভক্তি ও বানান শুদ্ধিকরণ।",
+            details: "কনস্টেবল লিখিত পরীক্ষার জন্য এক কথায় প্রকাশ, বাগধারা, সন্ধি বিচ্ছেদ, কারক-বিভক্তি ও বানান শুদ্ধিকরণ।",
           },
           {
             topic: "বাংলা সাহিত্য ও রচনামূলক অংশ",
             marks: "লিখিত অংশ",
-            details:
-              "জাতীয় কবি, রবীন্দ্রনাথ ঠাকুর, মুক্তিযুদ্ধভিত্তিক সাহিত্য এবং সংক্ষিপ্ত অনুচ্ছেদ/দরখাস্ত লিখন।",
+            details: "জাতীয় কবি, রবীন্দ্রনাথ ঠাকুর, মুক্তিযুদ্ধভিত্তিক সাহিত্য এবং সংক্ষিপ্ত অনুচ্ছেদ/দরখাস্ত লিখন।",
           },
         ],
       },
@@ -191,14 +189,12 @@ const DEFENSE_COURSES_CATALOG = {
           {
             topic: "Grammar, Tense, Voice, Narration & Preposition",
             marks: "লিখিত অংশ",
-            details:
-              "Parts of Speech, Right form of verbs, Appropriate Preposition, Voice Change এবং Narration-এর মৌলিক নিয়ম।",
+            details: "Parts of Speech, Right form of verbs, Appropriate Preposition, Voice Change এবং Narration-এর মৌলিক নিয়ম।",
           },
           {
             topic: "Vocabulary, Translation & Short Paragraph",
             marks: "লিখিত অংশ",
-            details:
-              "প্রতিদিনের ব্যবহৃত ইংরেজি শব্দের অর্থ, Synonym/Antonym এবং বাংলা থেকে ইংরেজি অনুবাদ।",
+            details: "প্রতিদিনের ব্যবহৃত ইংরেজি শব্দের অর্থ, Synonym/Antonym এবং বাংলা থেকে ইংরেজি অনুবাদ।",
           },
         ],
       },
@@ -213,14 +209,12 @@ const DEFENSE_COURSES_CATALOG = {
           {
             topic: "পাটিগণিত (শতকরা, অনুপাত, লাভ-ক্ষতি, গড়, সুদ ও সময়-কাজ)",
             marks: "লিখিত অংশ",
-            details:
-              "শতকরা, লাভ-ক্ষতি, ঐকিক নিয়ম, অনুপাত-সমানুপাত, গড় এবং সরল সুদের অংক সমাধানের সহজ নিয়ম।",
+            details: "শতকরা, লাভ-ক্ষতি, ঐকিক নিয়ম, অনুপাত-সমানুপাত, গড় এবং সরল সুদের অংক সমাধানের সহজ নিয়ম।",
           },
           {
             topic: "বীজগণিত ও মৌলিক জ্যামিতি",
             marks: "লিখিত অংশ",
-            details:
-              "বীজগণিতীয় সূত্রের মান নির্ণয়, উৎপাদকে বিশ্লেষণ এবং ত্রিভুজ ও চতুর্ভুজের ক্ষেত্রফল।",
+            details: "বীজগণিতীয় সূত্রের মান নির্ণয়, উৎপাদকে বিশ্লেষণ এবং ত্রিভুজ ও চতুর্ভুজের ক্ষেত্রফল।",
           },
         ],
       },
@@ -235,14 +229,12 @@ const DEFENSE_COURSES_CATALOG = {
           {
             topic: "বাংলাদেশ, মুক্তিযুদ্ধ, সংবিধান ও ভৌগোলিক পরিচিতি",
             marks: "লিখিত অংশ",
-            details:
-              "১৯৭১ সালের মহান মুক্তিযুদ্ধ, বীরশ্রেষ্ঠ, সংবিধানের মৌলিক ধারা, নদ-নদী ও বাংলাদেশের প্রশাসনিক কাঠামো।",
+            details: "১৯৭১ সালের মহান মুক্তিযুদ্ধ, বীরশ্রেষ্ঠ, সংবিধানের মৌলিক ধারা, নদ-নদী ও বাংলাদেশের প্রশাসনিক কাঠামো।",
           },
           {
             topic: "আন্তর্জাতিক বিষয়াবলি ও বাংলাদেশ পুলিশ পরিচিতি",
             marks: "লিখিত অংশ",
-            details:
-              "জাতিসংঘ, সার্ক, বিভিন্ন দেশের রাজধানী-মুদ্রা এবং বাংলাদেশ পুলিশের ইতিহাস ও পদমর্যাদা।",
+            details: "জাতিসংঘ, সার্ক, বিভিন্ন দেশের রাজধানী-মুদ্রা এবং বাংলাদেশ পুলিশের ইতিহাস ও পদমর্যাদা।",
           },
         ],
       },
@@ -257,8 +249,167 @@ const DEFENSE_COURSES_CATALOG = {
           {
             topic: "মৌখিক পরীক্ষা (Viva) ও মনস্তাত্ত্বিক মূল্যায়ন",
             marks: "২০ নম্বর",
-            details:
-              "ভাইভা বোর্ডে প্রবেশের আদবকেতা, নিজ জেলা, শিক্ষাগত যোগ্যতা, পুলিশে যোগদানের কারণ ও মনস্তাত্ত্বিক প্রশ্নোত্তর।",
+            details: "ভাইভা বোর্ডে প্রবেশের আদবকেতা, নিজ জেলা, শিক্ষাগত যোগ্যতা, পুলিশে যোগদানের কারণ ও মনস্তাত্ত্বিক প্রশ্নোত্তর।",
+          },
+        ],
+      },
+    ],
+  },
+
+  def_police_army_joint: {
+    id: "def_police_army_joint",
+    title: "পুলিশ + সেনাবাহিনী (যৌথ কোর্স)",
+    fullTitle: "পুলিশ কনস্টেবল (TRC) + সেনাবাহিনী (সৈনিক) যৌথ প্রস্তুতি কোর্স",
+    shortDesc: "পুলিশ কনস্টেবল ও সেনাবাহিনীতে (সৈনিক) পদে নিয়োগ পরীক্ষার যৌথ প্রস্তুতি কোর্স।",
+    badgeText: "🛡️ সকলের জন্য",
+    badgeColor: "bg-gradient-to-r from-emerald-600 to-green-500 text-white",
+    cardTheme: "from-[#0a2117] via-[#123826] to-[#071710] border-emerald-500/50",
+    btnColor: "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white",
+    targetLabel: "লক্ষ্য: বাংলাদেশ পুলিশ ও সেনাবাহিনী",
+    examSummary: "পুলিশ TRC (লিখিত ৪০ + ভাইভা ২০) এবং সৈনিক (১০০ নম্বর) সমন্বিত সিলেবাস",
+    vivaGuide: "পুলিশ কনস্টেবল ও সেনাবাহিনী সৈনিক পদের যৌথ মাঠ পরীক্ষা ও ভাইভা গাইডলাইন।",
+    subjects: [
+      {
+        id: "joint_pa_math",
+        title: "গণিত (পাটিগণিত, বীজগণিত ও জ্যামিতি)",
+        initial: "গ",
+        bg: "bg-purple-100",
+        text: "text-purple-900",
+        examMarks: 25,
+        marksLabel: "২৫ নম্বর",
+        syllabusBreakdown: [
+          {
+            topic: "শতকরা, অনুপাত, লাভ-ক্ষতি, গড়, সুদ ও বীজগণিত",
+            marks: "২৫ নম্বর",
+            details: "পুলিশ কনস্টেবল ও সৈনিক উভয় পরীক্ষার কমন গণিত টপিক।",
+          },
+        ],
+      },
+      {
+        id: "joint_pa_bangla",
+        title: "বাংলা ভাষা, ব্যাকরণ ও রচনা",
+        initial: "বাং",
+        bg: "bg-emerald-100",
+        text: "text-emerald-900",
+        examMarks: 20,
+        marksLabel: "২০ নম্বর",
+        syllabusBreakdown: [
+          {
+            topic: "ব্যাকরণ, বানান, সন্ধি, সমাস, বাগধারা ও সাহিত্য",
+            marks: "২০ নম্বর",
+            details: "লিখিত ও এমসিকিউ উভয় পরীক্ষার জন্য বাংলা প্রস্তুতি।",
+          },
+        ],
+      },
+      {
+        id: "joint_pa_english",
+        title: "ইংরেজি (Grammar & Vocabulary)",
+        initial: "ইং",
+        bg: "bg-blue-100",
+        text: "text-blue-900",
+        examMarks: 20,
+        marksLabel: "২০ নম্বর",
+        syllabusBreakdown: [
+          {
+            topic: "Grammar, Tense, Voice, Narration, Preposition & Vocabulary",
+            marks: "২০ নম্বর",
+            details: "বেসিক গ্রামার রুলস, ট্রান্সলেশন ও প্যারাগ্রাফ রাইটিং।",
+          },
+        ],
+      },
+      {
+        id: "joint_pa_gk",
+        title: "সাধারণ জ্ঞান ও আইকিউ (IQ)",
+        initial: "সা",
+        bg: "bg-amber-100",
+        text: "text-amber-900",
+        examMarks: 35,
+        marksLabel: "৩৫ নম্বর",
+        syllabusBreakdown: [
+          {
+            topic: "বাংলাদেশ, মুক্তিযুদ্ধ, সশস্ত্র বাহিনী, পুলিশ ও আইকিউ",
+            marks: "৩৫ নম্বর",
+            details: "সাধারণ জ্ঞান ২০ নম্বর + আইকিউ ১৫ নম্বর ও ভাইভা প্রস্তুতি।",
+          },
+        ],
+      },
+    ],
+  },
+
+  def_joint_3forces: {
+    id: "def_joint_3forces",
+    title: "ডিফেন্স জয়েন্ট কোর্স (আর্মি + এয়ার ফোর্স + নেভি)",
+    fullTitle: "ডিফেন্স জয়েন্ট কোর্স (সেনা + নৌ + বিমান বাহিনী)",
+    shortDesc: "তিন বাহিনীর জন্য একসাথে প্রস্তুতি নিন। এক কোর্সেই পূর্ণাঙ্গ গাইডলাইন।",
+    badgeText: "☆ হাই ডিমান্ড",
+    badgeColor: "bg-gradient-to-r from-violet-600 to-purple-500 text-white",
+    cardTheme: "from-[#0c163b] via-[#152766] to-[#08102b] border-blue-400/50",
+    btnColor: "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white",
+    targetLabel: "লক্ষ্য: সশস্ত্র বাহিনী (Army, Navy & Air Force)",
+    examSummary: "সৈনিক, নাবিক ও বিমানসেনা পদের ১০০ নম্বরের সমন্বিত অল-ইন-ওয়ান প্রস্তুতি",
+    vivaGuide: "সেনা, নৌ ও বিমান বাহিনীর র‍্যাংক, দায়িত্ব, শারীরিক যোগ্যতা ও চূড়ান্ত ভাইভা প্রস্তুতি।",
+    subjects: [
+      {
+        id: "j3_english",
+        title: "ইংরেজি (Grammar & Vocabulary)",
+        initial: "ইং",
+        bg: "bg-blue-100",
+        text: "text-blue-900",
+        examMarks: 25,
+        marksLabel: "২৫ নম্বর",
+        syllabusBreakdown: [
+          {
+            topic: "তিন বাহিনীর সমন্বিত ইংরেজি গ্রামার ও ভোকাবুলারি",
+            marks: "২৫ নম্বর",
+            details: "Parts of Speech, Tense, Voice, Preposition ও Vocabulary.",
+          },
+        ],
+      },
+      {
+        id: "j3_math",
+        title: "গণিত (পাটিগণিত ও বীজগণিত)",
+        initial: "গ",
+        bg: "bg-purple-100",
+        text: "text-purple-900",
+        examMarks: 25,
+        marksLabel: "২৫ নম্বর",
+        syllabusBreakdown: [
+          {
+            topic: "পাটিগণিত, বীজগণিত ও জ্যামিতি",
+            marks: "২৫ নম্বর",
+            details: "শতকরা, অনুপাত, লাভ-ক্ষতি ও বীজগণিতীয় সূত্রের প্রয়োগ।",
+          },
+        ],
+      },
+      {
+        id: "j3_science",
+        title: "সাধারণ বিজ্ঞান ও পদার্থবিজ্ঞান",
+        initial: "বি",
+        bg: "bg-teal-100",
+        text: "text-teal-900",
+        examMarks: 20,
+        marksLabel: "২০ নম্বর",
+        syllabusBreakdown: [
+          {
+            topic: "পদার্থবিজ্ঞান, রসায়ন ও সাধারণ বিজ্ঞান",
+            marks: "২০ নম্বর",
+            details: "নাবিক ও বিমানসেনা টেকনিক্যাল ট্রেডের জন্য অপরিহার্য বিজ্ঞান।",
+          },
+        ],
+      },
+      {
+        id: "j3_bangla_gk_iq",
+        title: "বাংলা, সাধারণ জ্ঞান ও আইকিউ (IQ)",
+        initial: "IQ",
+        bg: "bg-amber-100",
+        text: "text-amber-900",
+        examMarks: 30,
+        marksLabel: "৩০ নম্বর",
+        syllabusBreakdown: [
+          {
+            topic: "বাংলা ব্যাকরণ, মুক্তিযুদ্ধ, সশস্ত্র বাহিনী ও আইকিউ",
+            marks: "৩০ নম্বর",
+            details: "তিন বাহিনীর সাধারণ জ্ঞান, বাংলা ও ভার্বাল/নন-ভার্বাল আইকিউ।",
           },
         ],
       },
@@ -270,10 +421,10 @@ const DEFENSE_COURSES_CATALOG = {
     title: "সেনাবাহিনী (সৈনিক)",
     fullTitle: "বাংলাদেশ সেনাবাহিনী — সৈনিক পদে নিয়োগ প্রস্তুতি",
     shortDesc: "বাংলাদেশ সেনাবাহিনীতে সৈনিক পদে নিয়োগ পরীক্ষার সম্পূর্ণ প্রস্তুতি কোর্স।",
-    badgeText: "জনপ্রিয়",
-    badgeColor: "bg-emerald-600 text-white",
-    cardTheme: "from-[#0c2618] via-[#133b24] to-[#081c11] border-emerald-500/60",
-    btnColor: "bg-emerald-600 hover:bg-emerald-500 text-white",
+    badgeText: "🔥 জনপ্রিয়",
+    badgeColor: "bg-gradient-to-r from-emerald-600 to-teal-500 text-white",
+    cardTheme: "from-[#0a2115] via-[#123822] to-[#07170e] border-emerald-500/50",
+    btnColor: "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white",
     targetLabel: "লক্ষ্য: বাংলাদেশ সেনাবাহিনী",
     examSummary: "প্রস্তাবিত মডেল টেস্ট: ১০০ নম্বর (গণিত ২৫, বাংলা ২০, ইংরেজি ২০, সা.জ্ঞান ২০, IQ ১৫)",
     vivaGuide:
@@ -386,586 +537,7 @@ const DEFENSE_COURSES_CATALOG = {
       },
     ],
   },
-
-  def_navy_sailor: {
-    id: "def_navy_sailor",
-    title: "নৌবাহিনী — নাবিক (Sailor)",
-    fullTitle: "বাংলাদেশ নৌবাহিনী — নাবিক (Sailor) নিয়োগ প্রস্তুতি",
-    shortDesc: "বাংলাদেশ নৌবাহিনীতে নাবিক (DE/UC, পেট্রোলম্যান, রাইটার, স্টোর ও কুক) পদের পূর্ণাঙ্গ প্রস্তুতি।",
-    badgeText: "স্পেশাল ব্যাচ",
-    badgeColor: "bg-cyan-600 text-white",
-    cardTheme: "from-[#08203e] via-[#0c315e] to-[#061529] border-cyan-400/60",
-    btnColor: "bg-cyan-600 hover:bg-cyan-500 text-white",
-    targetLabel: "লক্ষ্য: বাংলাদেশ নৌবাহিনী",
-    examSummary: "প্রস্তাবিত মডেল টেস্ট: ১০০ নম্বর (ইংরেজি ২০, গণিত ২০, বিজ্ঞান ২০, বাংলা ১৫, সা.জ্ঞান ১৫, IQ ১০)",
-    vivaGuide:
-      "ব্যক্তিগত পরিচয়, শিক্ষাগত যোগ্যতা, নৌবাহিনীর দায়িত্ব, যোগদানের উদ্দেশ্য, শৃঙ্খলা, সাঁতার দক্ষতা ও সাধারণ জ্ঞান।",
-    subjects: [
-      {
-        id: "navy_english",
-        title: "ইংরেজি (Grammar & Vocabulary)",
-        initial: "ইং",
-        bg: "bg-blue-100",
-        text: "text-blue-900",
-        examMarks: 20,
-        marksLabel: "২০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "English Grammar & Sentence Structure",
-            marks: "১২ নম্বর",
-            details: "Tense, Preposition, Parts of Speech, Voice Change ও Right Form of Verbs.",
-          },
-          {
-            topic: "Vocabulary & Spelling",
-            marks: "৮ নম্বর",
-            details: "Synonym, Antonym, Idioms এবং বানান শুদ্ধিকরণ।",
-          },
-        ],
-      },
-      {
-        id: "navy_math",
-        title: "গণিত (পাটিগণিত ও বীজগণিত)",
-        initial: "গ",
-        bg: "bg-purple-100",
-        text: "text-purple-900",
-        examMarks: 20,
-        marksLabel: "২০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "পাটিগণিত (শতকরা, অনুপাত, লাভ-ক্ষতি ও গড়)",
-            marks: "১০ নম্বর",
-            details: "নাবিক ভর্তি পরীক্ষার উপযোগী পাটিগণিত ও দ্রুত সমাধান কৌশল।",
-          },
-          {
-            topic: "বীজগণিত ও জ্যামিতি",
-            marks: "১০ নম্বর",
-            details: "বীজগণিতীয় রাশি, উৎপাদক, সূচক ও মৌলিক জ্যামিতি।",
-          },
-        ],
-      },
-      {
-        id: "navy_science",
-        title: "সাধারণ বিজ্ঞান",
-        initial: "বি",
-        bg: "bg-teal-100",
-        text: "text-teal-900",
-        examMarks: 20,
-        marksLabel: "২০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "পদার্থবিজ্ঞান, রসায়ন ও জীববিজ্ঞানের মৌলিক ধারণা",
-            marks: "২০ নম্বর",
-            details: "বল, গতি, কাজ-ক্ষমতা-শক্তি, তাপ, আলো, পদার্থের অবস্থা, অ্যাসিড-ক্ষার ও মানবদেহ।",
-          },
-        ],
-      },
-      {
-        id: "navy_bangla",
-        title: "বাংলা ব্যাকরণ ও শব্দার্থ",
-        initial: "বাং",
-        bg: "bg-emerald-100",
-        text: "text-emerald-900",
-        examMarks: 15,
-        marksLabel: "১৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বাংলা ব্যাকরণ, শব্দার্থ, সন্ধি ও সমাস",
-            marks: "১৫ নম্বর",
-            details: "বাগধারা, এক কথায় প্রকাশ, সমার্থক শব্দ, সন্ধি ও কারক-বিভক্তি।",
-          },
-        ],
-      },
-      {
-        id: "navy_gk",
-        title: "সাধারণ জ্ঞান ও নৌবাহিনী পরিচিতি",
-        initial: "সা",
-        bg: "bg-amber-100",
-        text: "text-amber-900",
-        examMarks: 15,
-        marksLabel: "১৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বাংলাদেশ, আন্তর্জাতিক বিষয়াবলি ও নৌবাহিনী সম্পর্কে সাধারণ জ্ঞান",
-            marks: "১৫ নম্বর",
-            details: "মুক্তিযুদ্ধ, সমুদ্রসীমা বিজয়, নৌবাহিনীর ঘাঁটি, জাহাজ ও র‍্যাংক পরিচিতি।",
-          },
-        ],
-      },
-      {
-        id: "navy_iq",
-        title: "আইকিউ (IQ) ও ভাইভা",
-        initial: "IQ",
-        bg: "bg-fuchsia-100",
-        text: "text-fuchsia-900",
-        examMarks: 10,
-        marksLabel: "১০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "যুক্তি ও বুদ্ধিমত্তা (IQ) এবং ভাইভা প্রস্তুতি",
-            marks: "১০ নম্বর",
-            details: "ভার্বাল ও নন-ভার্বাল আইকিউ, সংখ্যার ধারা এবং নাবিক ভাইভা প্রশ্নোত্তর।",
-          },
-        ],
-      },
-    ],
-  },
-
-  def_air_airman: {
-    id: "def_air_airman",
-    title: "বিমানবাহিনী — বিমানসেনা",
-    fullTitle: "বাংলাদেশ বিমানবাহিনী — বিমানসেনা (Airman: Tech & Non-Tech)",
-    shortDesc: "বিমানসেনা টেকনিক্যাল ও নন-টেকনিক্যাল উভয় ট্রেডের ১০০ নম্বরের পূর্ণাঙ্গ প্রস্তুতি।",
-    badgeText: "হাই ডিমান্ড",
-    badgeColor: "bg-purple-600 text-white",
-    cardTheme: "from-[#12163b] via-[#1d2559] to-[#0c102b] border-indigo-400/60",
-    btnColor: "bg-indigo-600 hover:bg-indigo-500 text-white",
-    targetLabel: "লক্ষ্য: বাংলাদেশ বিমানবাহিনী",
-    examSummary:
-      "নন-টেকনিক্যাল: ১০০ (ইংরেজি ৩০, IQ ৩০, সা.জ্ঞান ৪০) • টেকনিক্যাল: ১০০ (ইংরেজি ২৫, IQ ২৫, গণিত ২৫, পদার্থ ২৫)",
-    vivaGuide:
-      "ব্যক্তিগত পরিচয়, নির্বাচিত ট্রেড, বিমানবাহিনীর দায়িত্ব, শৃঙ্খলা ও সাধারণ বিজ্ঞান।",
-    subjects: [
-      {
-        id: "air_english",
-        title: "ইংরেজি (Grammar & Vocabulary)",
-        initial: "ইং",
-        bg: "bg-blue-100",
-        text: "text-blue-900",
-        examMarks: 30,
-        marksLabel: "৩০ / ২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "English Grammar & Vocabulary (Non-Tech: 30 / Tech: 25)",
-            marks: "৩০ / ২৫ নম্বর",
-            details:
-              "Parts of Speech, Tense, Preposition, Voice, Narration, Synonym-Antonym ও Correct Spelling.",
-          },
-        ],
-      },
-      {
-        id: "air_iq",
-        title: "আইকিউ (IQ — যুক্তি ও বুদ্ধিমত্তা)",
-        initial: "IQ",
-        bg: "bg-fuchsia-100",
-        text: "text-fuchsia-900",
-        examMarks: 30,
-        marksLabel: "৩০ / ২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "Verbal & Non-Verbal IQ (Non-Tech: 30 / Tech: 25)",
-            marks: "৩০ / ২৫ নম্বর",
-            details:
-              "বিমানসেনা নির্বাচনী পরীক্ষার সর্বাধিক গুরুত্বপূর্ণ আইকিউ: সিরিজ, ম্যাট্রিক্স, অ্যানালজি ও প্যাটার্ন।",
-          },
-        ],
-      },
-      {
-        id: "air_gk",
-        title: "সাধারণ জ্ঞান (নন-টেকনিক্যাল ট্রেড)",
-        initial: "সা",
-        bg: "bg-amber-100",
-        text: "text-amber-900",
-        examMarks: 40,
-        marksLabel: "৪০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বাংলাদেশ ও আন্তর্জাতিক বিষয়াবলি এবং বিমানবাহিনী পরিচিতি",
-            marks: "৪০ নম্বর",
-            details:
-              "মুক্তিযুদ্ধে কিলো ফ্লাইট, বীরশ্রেষ্ঠ মতিউর রহমান, বিমানবাহিনীর ঘাঁটি ও সাম্প্রতিক সাধারণ জ্ঞান।",
-          },
-        ],
-      },
-      {
-        id: "air_math",
-        title: "গণিত (টেকনিক্যাল ট্রেড)",
-        initial: "গ",
-        bg: "bg-purple-100",
-        text: "text-purple-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "পাটিগণিত, বীজগণিত ও ত্রিকোণমিতি",
-            marks: "২৫ নম্বর",
-            details: "শতকরা, অনুপাত, সূচক, লগারিদম, সমীকরণ ও পরিমিতির অংক।",
-          },
-        ],
-      },
-      {
-        id: "air_physics",
-        title: "পদার্থবিজ্ঞান (টেকনিক্যাল ট্রেড)",
-        initial: "প",
-        bg: "bg-teal-100",
-        text: "text-teal-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বল, গতি, কাজ, বিদ্যুৎ, চুম্বক ও শক্তি",
-            marks: "২৫ নম্বর",
-            details: "নিউটনের গতিসূত্র, কাজ-ক্ষমতা-শক্তি, চল তড়িৎ, আলোর প্রতিফলন ও প্রতিসরণ।",
-          },
-        ],
-      },
-    ],
-  },
-
-  def_navy_cadet: {
-    id: "def_navy_cadet",
-    title: "নৌবাহিনী — অফিসার ক্যাডেট",
-    fullTitle: "বাংলাদেশ নৌবাহিনী — অফিসার ক্যাডেট (প্রাথমিক লিখিত, ভাইভা ও ISSB)",
-    shortDesc: "নৌবাহিনী অফিসার ক্যাডেট পদের ১০০ নম্বরের লিখিত ও ISSB গাইডলাইন।",
-    badgeText: "অফিসার ক্যাডেট",
-    badgeColor: "bg-amber-500 text-slate-950",
-    cardTheme: "from-[#0a1f3d] via-[#133361] to-[#08162b] border-amber-400/60",
-    btnColor: "bg-amber-500 hover:bg-amber-400 text-slate-950",
-    targetLabel: "লক্ষ্য: বাংলাদেশ নৌবাহিনী (অফিসার ক্যাডেট)",
-    examSummary: "প্রস্তাবিত মডেল টেস্ট: ১০০ নম্বর (ইংরেজি ২৫, গণিত ২৫, পদার্থ ২০, রসায়ন ১৫, সা.জ্ঞান ১৫)",
-    vivaGuide:
-      "নেতৃত্ব, ব্যক্তিত্ব, যোগাযোগদক্ষতা, সিদ্ধান্ত গ্রহণ, দলগত কাজ, নৌবাহিনী সম্পর্কে জ্ঞান ও সাম্প্রতিক ঘটনা (ISSB ও প্রাথমিক ভাইভা)।",
-    subjects: [
-      {
-        id: "nc_english",
-        title: "ইংরেজি (Grammar, Vocabulary & Comprehension)",
-        initial: "ইং",
-        bg: "bg-blue-100",
-        text: "text-blue-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "English Grammar, Vocabulary & Comprehension",
-            marks: "২৫ নম্বর",
-            details: "Sentence Correction, Clauses, Prepositions, High-frequency Vocabulary & Passage Reading.",
-          },
-        ],
-      },
-      {
-        id: "nc_math",
-        title: "গণিত (বীজগণিত, জ্যামিতি ও ত্রিকোণমিতি)",
-        initial: "গ",
-        bg: "bg-purple-100",
-        text: "text-purple-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বীজগণিত, জ্যামিতি, ত্রিকোণমিতি ও ক্যালকুলাস বেসিক",
-            marks: "২৫ নম্বর",
-            details: "ফাংশন, ম্যাট্রিক্স, ত্রিকোণমিতিক অনুপাত, স্থানাঙ্ক জ্যামিতি ও বীজগণিতীয় সূত্র।",
-          },
-        ],
-      },
-      {
-        id: "nc_physics",
-        title: "পদার্থবিজ্ঞান (Physics)",
-        initial: "প",
-        bg: "bg-teal-100",
-        text: "text-teal-900",
-        examMarks: 20,
-        marksLabel: "২০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বল, গতি, ভেক্টর, বিদ্যুৎ, তাপগতিবিদ্যা ও শক্তি",
-            marks: "২০ নম্বর",
-            details: "ভেক্টর, নিউটনের বলবিদ্যা, কাজ-ক্ষমতা-শক্তি, তরঙ্গ ও তড়িৎ প্রবাহ।",
-          },
-        ],
-      },
-      {
-        id: "nc_chemistry",
-        title: "রসায়ন (Chemistry)",
-        initial: "র",
-        bg: "bg-rose-100",
-        text: "text-rose-900",
-        examMarks: 15,
-        marksLabel: "১৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "রসায়নের মৌলিক ধারণা, পর্যায় সারণি ও রাসায়নিক বন্ধন",
-            marks: "১৫ নম্বর",
-            details: "পরমাণুর গঠন, পর্যায় সারণি, জারণ-বিজারণ, অম্ল-ক্ষারক ও পরিমাণগত রসায়ন।",
-          },
-        ],
-      },
-      {
-        id: "nc_gk",
-        title: "সাধারণ জ্ঞান ও ISSB প্রস্তুতি",
-        initial: "সা",
-        bg: "bg-amber-100",
-        text: "text-amber-900",
-        examMarks: 15,
-        marksLabel: "১৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বাংলাদেশ, আন্তর্জাতিক বিষয়াবলি, সাম্প্রতিক ঘটনা ও ISSB",
-            marks: "১৫ নম্বর",
-            details: "মুক্তিযুদ্ধ, ভূ-রাজনীতি, নৌবাহিনী পরিচিতি এবং ISSB নেতৃত্ব ও মনস্তাত্ত্বিক প্রস্তুতি।",
-          },
-        ],
-      },
-    ],
-  },
-
-  def_air_bafa: {
-    id: "def_air_bafa",
-    title: "বিমানবাহিনী — অফিসার ক্যাডেট (BAFA)",
-    fullTitle: "বাংলাদেশ বিমানবাহিনী — অফিসার ক্যাডেট (BAFA)",
-    shortDesc: "বিমানবাহিনী অফিসার ক্যাডেট (BAFA) পদের ১০০ নম্বরের লিখিত, IQ ও ISSB প্রস্তুতি।",
-    badgeText: "BAFA ক্যাডেট",
-    badgeColor: "bg-sky-500 text-slate-950",
-    cardTheme: "from-[#111936] via-[#1c2b59] to-[#0b1024] border-sky-400/60",
-    btnColor: "bg-sky-500 hover:bg-sky-400 text-slate-950",
-    targetLabel: "লক্ষ্য: বাংলাদেশ বিমানবাহিনী (BAFA)",
-    examSummary: "প্রস্তাবিত মডেল টেস্ট: ১০০ নম্বর (ইংরেজি ২৫, গণিত ২৫, পদার্থ ২৫, IQ ১৫, সা.জ্ঞান ১০)",
-    vivaGuide:
-      "নেতৃত্ব, ব্যক্তিত্ব, যোগাযোগদক্ষতা, সিদ্ধান্ত গ্রহণ, বিমানবাহিনীর দায়িত্ব এবং নির্বাচিত শাখার মৌলিক জ্ঞান।",
-    subjects: [
-      {
-        id: "bafa_english",
-        title: "ইংরেজি (Grammar & Vocabulary)",
-        initial: "ইং",
-        bg: "bg-blue-100",
-        text: "text-blue-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "English Grammar & Vocabulary",
-            marks: "২৫ নম্বর",
-            details: "Parts of Speech, Preposition, Idioms & Phrases, Transformation & Vocabulary.",
-          },
-        ],
-      },
-      {
-        id: "bafa_math",
-        title: "গণিত (বীজগণিত, জ্যামিতি ও ত্রিকোণমিতি)",
-        initial: "গ",
-        bg: "bg-purple-100",
-        text: "text-purple-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বীজগণিত, জ্যামিতি ও ত্রিকোণমিতি",
-            marks: "২৫ নম্বর",
-            details: "সূচক, লগারিদম, ত্রিকোণমিতিক সমীকরণ, সরলরেখা ও বৃত্ত।",
-          },
-        ],
-      },
-      {
-        id: "bafa_physics",
-        title: "পদার্থবিজ্ঞান (বল, গতি, বিদ্যুৎ, আলো ও শক্তি)",
-        initial: "প",
-        bg: "bg-teal-100",
-        text: "text-teal-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বল, গতি, বিদ্যুৎ, আলো ও শক্তি",
-            marks: "২৫ নম্বর",
-            details: "গতিবিদ্যা, মহাকর্ষ, জ্যামিতিক আলোকবিজ্ঞান, স্থির ও চল তড়িৎ এবং আধুনিক পদার্থবিজ্ঞান।",
-          },
-        ],
-      },
-      {
-        id: "bafa_iq",
-        title: "আইকিউ (IQ — যুক্তি ও বুদ্ধিমত্তা)",
-        initial: "IQ",
-        bg: "bg-fuchsia-100",
-        text: "text-fuchsia-900",
-        examMarks: 15,
-        marksLabel: "১৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "যুক্তি ও বুদ্ধিমত্তা (Verbal & Non-Verbal IQ)",
-            marks: "১৫ নম্বর",
-            details: "BAFA সিলেকশন আইকিউ টেস্ট ও দ্রুত মানসিক দক্ষতা যাচাই।",
-          },
-        ],
-      },
-      {
-        id: "bafa_gk",
-        title: "সাধারণ জ্ঞান ও ISSB প্রস্তুতি",
-        initial: "সা",
-        bg: "bg-amber-100",
-        text: "text-amber-900",
-        examMarks: 10,
-        marksLabel: "১০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বাংলাদেশ, আন্তর্জাতিক বিষয়াবলি, সাম্প্রতিক ঘটনা ও ISSB",
-            marks: "১০ নম্বর",
-            details: "বাংলাদেশ বিমানবাহিনী পরিচিতি, সাম্প্রতিক বিশ্ব ও ISSB ভাইভা গাইডলাইন।",
-          },
-        ],
-      },
-    ],
-  },
-
-  def_police_army_joint: {
-    id: "def_police_army_joint",
-    title: "পুলিশ + সেনাবাহিনী (যৌথ কোর্স)",
-    fullTitle: "পুলিশ কনস্টেবল (TRC) + সেনাবাহিনী (সৈনিক) যৌথ প্রস্তুতি কোর্স",
-    shortDesc: "পুলিশ কনস্টেবল ও সেনাবাহিনীতে (সৈনিক) পদে নিয়োগ পরীক্ষার যৌথ প্রস্তুতি কোর্স।",
-    badgeText: "সকলের জন্য",
-    badgeColor: "bg-emerald-600 text-white",
-    cardTheme: "from-[#0d241b] via-[#153b2b] to-[#0a1c14] border-emerald-400/60",
-    btnColor: "bg-emerald-500 hover:bg-emerald-400 text-slate-950",
-    targetLabel: "লক্ষ্য: বাংলাদেশ পুলিশ ও সেনাবাহিনী",
-    examSummary: "পুলিশ TRC (লিখিত ৪০ + ভাইভা ২০) এবং সৈনিক (১০০ নম্বর) সমন্বিত সিলেবাস",
-    vivaGuide: "পুলিশ কনস্টেবল ও সেনাবাহিনী সৈনিক পদের যৌথ মাঠ পরীক্ষা ও ভাইভা গাইডলাইন।",
-    subjects: [
-      {
-        id: "joint_pa_math",
-        title: "গণিত (পাটিগণিত, বীজগণিত ও জ্যামিতি)",
-        initial: "গ",
-        bg: "bg-purple-100",
-        text: "text-purple-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "শতকরা, অনুপাত, লাভ-ক্ষতি, গড়, সুদ ও বীজগণিত",
-            marks: "২৫ নম্বর",
-            details: "পুলিশ কনস্টেবল ও সৈনিক উভয় পরীক্ষার কমন গণিত টপিক।",
-          },
-        ],
-      },
-      {
-        id: "joint_pa_bangla",
-        title: "বাংলা ভাষা, ব্যাকরণ ও রচনা",
-        initial: "বাং",
-        bg: "bg-emerald-100",
-        text: "text-emerald-900",
-        examMarks: 20,
-        marksLabel: "২০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "ব্যাকরণ, বানান, সন্ধি, সমাস, বাগধারা ও সাহিত্য",
-            marks: "২০ নম্বর",
-            details: "লিখিত ও এমসিকিউ উভয় পরীক্ষার জন্য বাংলা প্রস্তুতি।",
-          },
-        ],
-      },
-      {
-        id: "joint_pa_english",
-        title: "ইংরেজি (Grammar & Vocabulary)",
-        initial: "ইং",
-        bg: "bg-blue-100",
-        text: "text-blue-900",
-        examMarks: 20,
-        marksLabel: "২০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "Grammar, Tense, Voice, Narration, Preposition & Vocabulary",
-            marks: "২০ নম্বর",
-            details: "বেসিক গ্রামার রুলস, ট্রান্সলেশন ও প্যারাগ্রাফ রাইটিং।",
-          },
-        ],
-      },
-      {
-        id: "joint_pa_gk",
-        title: "সাধারণ জ্ঞান ও আইকিউ (IQ)",
-        initial: "সা",
-        bg: "bg-amber-100",
-        text: "text-amber-900",
-        examMarks: 35,
-        marksLabel: "৩৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বাংলাদেশ, মুক্তিযুদ্ধ, সশস্ত্র বাহিনী, পুলিশ ও আইকিউ",
-            marks: "৩৫ নম্বর",
-            details: "সাধারণ জ্ঞান ২০ নম্বর + আইকিউ ১৫ নম্বর ও ভাইভা প্রস্তুতি।",
-          },
-        ],
-      },
-    ],
-  },
-
-  def_joint_3forces: {
-    id: "def_joint_3forces",
-    title: "ডিফেন্স জয়েন্ট কোর্স (আর্মি + এয়ার ফোর্স + নেভি)",
-    fullTitle: "ডিফেন্স জয়েন্ট কোর্স (সেনা + নৌ + বিমান বাহিনী)",
-    shortDesc: "তিন বাহিনীর জন্য একসাথে প্রস্তুতি নিন। এক কোর্সেই পূর্ণাঙ্গ গাইডলাইন।",
-    badgeText: "হাই ডিমান্ড",
-    badgeColor: "bg-violet-600 text-white",
-    cardTheme: "from-[#11183b] via-[#1c2863] to-[#0b1029] border-blue-400/60",
-    btnColor: "bg-blue-500 hover:bg-blue-400 text-white",
-    targetLabel: "লক্ষ্য: সশস্ত্র বাহিনী (Army, Navy & Air Force)",
-    examSummary: "সৈনিক, নাবিক ও বিমানসেনা পদের ১০০ নম্বরের সমন্বিত অল-ইন-ওয়ান প্রস্তুতি",
-    vivaGuide: "সেনা, নৌ ও বিমান বাহিনীর র‍্যাংক, দায়িত্ব, শারীরিক যোগ্যতা ও চূড়ান্ত ভাইভা প্রস্তুতি।",
-    subjects: [
-      {
-        id: "j3_english",
-        title: "ইংরেজি (Grammar & Vocabulary)",
-        initial: "ইং",
-        bg: "bg-blue-100",
-        text: "text-blue-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "তিন বাহিনীর সমন্বিত ইংরেজি গ্রামার ও ভোকাবুলারি",
-            marks: "২৫ নম্বর",
-            details: "Parts of Speech, Tense, Voice, Preposition ও Vocabulary.",
-          },
-        ],
-      },
-      {
-        id: "j3_math",
-        title: "গণিত (পাটিগণিত ও বীজগণিত)",
-        initial: "গ",
-        bg: "bg-purple-100",
-        text: "text-purple-900",
-        examMarks: 25,
-        marksLabel: "২৫ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "পাটিগণিত, বীজগণিত ও জ্যামিতি",
-            marks: "২৫ নম্বর",
-            details: "শতকরা, অনুপাত, লাভ-ক্ষতি ও বীজগণিতীয় সূত্রের প্রয়োগ।",
-          },
-        ],
-      },
-      {
-        id: "j3_science",
-        title: "সাধারণ বিজ্ঞান ও পদার্থবিজ্ঞান",
-        initial: "বি",
-        bg: "bg-teal-100",
-        text: "text-teal-900",
-        examMarks: 20,
-        marksLabel: "২০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "পদার্থবিজ্ঞান, রসায়ন ও সাধারণ বিজ্ঞান",
-            marks: "২০ নম্বর",
-            details: "নাবিক ও বিমানসেনা টেকনিক্যাল ট্রেডের জন্য অপরিহার্য বিজ্ঞান।",
-          },
-        ],
-      },
-      {
-        id: "j3_bangla_gk_iq",
-        title: "বাংলা, সাধারণ জ্ঞান ও আইকিউ (IQ)",
-        initial: "IQ",
-        bg: "bg-amber-100",
-        text: "text-amber-900",
-        examMarks: 30,
-        marksLabel: "৩০ নম্বর",
-        syllabusBreakdown: [
-          {
-            topic: "বাংলা ব্যাকরণ, মুক্তিযুদ্ধ, সশস্ত্র বাহিনী ও আইকিউ",
-            marks: "৩০ নম্বর",
-            details: "তিন বাহিনীর সাধারণ জ্ঞান, বাংলা ও ভার্বাল/নন-ভার্বাল আইকিউ।",
-          },
-        ],
-      },
-    ],
-  },
 };
-
 const ALL_COURSE_KEYS = ["bcs", ...Object.keys(DEFENSE_COURSES_CATALOG)];
 
 function getCourseTargetLabel(courseKey) {
@@ -4823,12 +4395,51 @@ export default function BCSPathPlatform() {
       DEFENSE_COURSES_CATALOG.def_army_sainik,
     ];
 
-    const specialized4Cards = [
-      DEFENSE_COURSES_CATALOG.def_navy_sailor,
-      DEFENSE_COURSES_CATALOG.def_air_airman,
-      DEFENSE_COURSES_CATALOG.def_navy_cadet,
-      DEFENSE_COURSES_CATALOG.def_air_bafa,
-    ];
+    // Helper for force crest icons matching Image 2
+    const renderForceCrestBadges = (courseId) => {
+      if (courseId === "def_police_trc") {
+        return (
+          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#102a63] border-2 border-blue-400 flex items-center justify-center shadow-md">
+            <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-sky-300" />
+          </div>
+        );
+      }
+      if (courseId === "def_police_army_joint") {
+        return (
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#102a63] border-2 border-blue-400 flex items-center justify-center shadow">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-sky-300" />
+            </div>
+            <span className="text-white font-black text-xs sm:text-sm">+</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0d3b26] border-2 border-amber-400 flex items-center justify-center shadow">
+              <Award className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+            </div>
+          </div>
+        );
+      }
+      if (courseId === "def_joint_3forces") {
+        return (
+          <div className="flex items-center gap-1">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#0d3b26] border-2 border-amber-400 flex items-center justify-center shadow">
+              <Award className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            </div>
+            <span className="text-white font-black text-[10px] sm:text-xs">+</span>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#0c3b6e] border-2 border-sky-400 flex items-center justify-center shadow">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-sky-300" />
+            </div>
+            <span className="text-white font-black text-[10px] sm:text-xs">+</span>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#172554] border-2 border-amber-400 flex items-center justify-center shadow">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#0d3b26] border-2 border-amber-400 flex items-center justify-center shadow-md">
+          <Award className="w-6 h-6 sm:w-7 sm:h-7 text-amber-400" />
+        </div>
+      );
+    };
 
     return (
       <div className="min-h-screen bg-[#eef2f9] text-slate-900 pb-16">
@@ -4877,7 +4488,7 @@ export default function BCSPathPlatform() {
             </button>
           </div>
 
-          {/* TOP HERO BANNER (Matches Image 4: ডিফেন্স & পুলিশ ফাউন্ডেশন কোর্স) */}
+          {/* TOP HERO BANNER (Matches Image 2) */}
           <div className="rounded-3xl bg-gradient-to-r from-[#07112e] via-[#0e1e4d] to-[#081336] text-white p-5 sm:p-8 border-2 border-indigo-500/40 shadow-xl grid grid-cols-1 lg:grid-cols-12 items-center gap-6 relative overflow-hidden">
             <div className="lg:col-span-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 z-10">
               <div className="w-20 h-24 sm:w-24 sm:h-28 rounded-2xl bg-[#0b1536] border-2 border-amber-400 flex items-center justify-center shrink-0 shadow-lg">
@@ -4891,7 +4502,7 @@ export default function BCSPathPlatform() {
                   ডিফেন্স & পুলিশ ফাউন্ডেশন কোর্স
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-2xl">
-                  বাংলাদেশের সশস্ত্র বাহিনী ও পুলিশে যোগদানের স্বপ্নকে বাস্তবে রূপ দিতে সঠিক প্রস্তুতি নিন। নির্বাচিত কোর্সে আপনার লক্ষ্য অনুযায়ী বিশেষায়িত কোচিং, ক্লাস ও অনুশীলন সুবিধা।
+                  বাংলাদেশের সশস্ত্র বাহিনীতে যোগদানের স্বপ্নকে বাস্তবে রূপ দিতে সঠিক প্রস্তুতি নিন। নির্বাচিত কোর্সে আপনার লক্ষ্য অনুযায়ী বিশেষায়িত কোচিং, ক্লাস ও অনুশীলন সুবিধা।
                 </p>
               </div>
             </div>
@@ -4900,15 +4511,15 @@ export default function BCSPathPlatform() {
               {[
                 {
                   title: "বিশেষায়িত প্রস্তুতি",
-                  sub: "প্রতিটি বাহিনীর জন্য আলাদা কৌশল ও নম্বরবণ্টন",
+                  sub: "প্রতিটি বাহিনীর জন্য আলাদা কৌশল",
                 },
                 {
-                  title: "অভিজ্ঞ মেন্টর ও প্রশ্নব্যাংক",
-                  sub: "বিগত বছরের প্রশ্ন ও মডেল টেস্ট অনুশীলন",
+                  title: "অভিজ্ঞ মেন্টর",
+                  sub: "প্রাক্তন সদস্য ও বিশেষজ্ঞ শিক্ষকমণ্ডলী",
                 },
                 {
                   title: "অনলাইন + অফলাইন সুবিধা",
-                  sub: "যেকোনো সময়, যেকোনো জায়গায় স্মার্ট প্রস্তুতি",
+                  sub: "যেকোনো সময়, যেকোনো জায়গায়",
                 },
               ].map((feat, i) => (
                 <div key={i} className="flex items-center gap-3">
@@ -4937,7 +4548,7 @@ export default function BCSPathPlatform() {
                   আপনার লক্ষ্য অনুযায়ী কোর্স নির্বাচন করুন
                 </h3>
                 <p className="text-xs sm:text-sm font-bold text-slate-600">
-                  আপনার পছন্দের কোর্সে ক্লিক করুন এবং বিস্তারিত ড্যাশবোর্ডে প্রবেশ করুন
+                  আপনার পছন্দের কোর্সে ক্লিক করুন এবং বিস্তারিত তথ্য দেখুন
                 </p>
               </div>
             </div>
@@ -4950,7 +4561,7 @@ export default function BCSPathPlatform() {
             </div>
           </div>
 
-          {/* ROW 1: 4 FEATURED CARDS (2 PER ROW ON MOBILE `grid-cols-2`, 4 ON DESKTOP `lg:grid-cols-4` - Requirement 3) */}
+          {/* ONLY THE 4 COURSES FROM IMAGE 2 (2 PER ROW ON MOBILE `grid-cols-2`, 4 ON DESKTOP `lg:grid-cols-4`) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             {main4Cards.map((course) => (
               <div
@@ -4958,13 +4569,11 @@ export default function BCSPathPlatform() {
                 onClick={() => enterCourseDashboard(course.id)}
                 className={`premium-card rounded-2xl sm:rounded-3xl bg-gradient-to-b ${course.cardTheme} border-2 p-3.5 sm:p-5 text-white flex flex-col justify-between cursor-pointer shadow-lg`}
               >
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 border border-white/25 flex items-center justify-center text-amber-300 font-black text-xs sm:text-sm shrink-0">
-                      <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </div>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-1">
+                    {renderForceCrestBadges(course.id)}
                     <span
-                      className={`px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-black ${course.badgeColor}`}
+                      className={`px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-black shrink-0 ${course.badgeColor}`}
                     >
                       {course.badgeText}
                     </span>
@@ -4979,16 +4588,23 @@ export default function BCSPathPlatform() {
                   </p>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-white/15 space-y-2.5">
-                  <div className="flex flex-wrap gap-1 text-[10px] font-extrabold text-amber-200">
-                    <span className="px-2 py-0.5 rounded bg-white/10">লিখিত</span>
-                    <span className="px-2 py-0.5 rounded bg-white/10">MCQ</span>
-                    <span className="px-2 py-0.5 rounded bg-white/10">ভাইভা</span>
+                {/* Bottom Bar: Pills + "কোর্সে যান >" Button matching Image 2 */}
+                <div className="pt-3.5 mt-4 border-t border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-extrabold text-slate-100">
+                    <span className="px-2 py-1 rounded-full bg-white/10 border border-white/15">
+                      📖 লিখিত
+                    </span>
+                    <span className="px-2 py-1 rounded-full bg-white/10 border border-white/15">
+                      📄 MCQ
+                    </span>
+                    <span className="px-2 py-1 rounded-full bg-white/10 border border-white/15">
+                      ☆ মক টেস্ট
+                    </span>
                   </div>
 
                   <button
                     type="button"
-                    className={`w-full py-2 sm:py-2.5 rounded-xl font-black text-[11px] sm:text-xs flex items-center justify-center gap-1 shadow cursor-pointer ${course.btnColor}`}
+                    className={`px-3 py-1.5 sm:py-2 rounded-full font-black text-[11px] sm:text-xs flex items-center justify-center gap-1 shadow shrink-0 cursor-pointer ${course.btnColor}`}
                   >
                     <span>কোর্সে যান</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -4998,76 +4614,35 @@ export default function BCSPathPlatform() {
             ))}
           </div>
 
-          {/* ROW 2: SAILOR, AIRMAN, NAVY OFFICER CADET & BAFA OFFICER CADET (2 PER ROW ON MOBILE `grid-cols-2`) */}
-          <div className="space-y-3 pt-2">
-            <h4 className="font-black text-base sm:text-xl text-slate-900 flex items-center gap-2">
-              <Award className="w-5 h-5 text-[#2e1065]" />
-              <span>নাবিক, বিমানসেনা ও অফিসার ক্যাডেট (ISSB/BAFA) বিশেষায়িত কোর্সসমূহ</span>
-            </h4>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-              {specialized4Cards.map((course) => (
-                <div
-                  key={course.id}
-                  onClick={() => enterCourseDashboard(course.id)}
-                  className={`premium-card rounded-2xl sm:rounded-3xl bg-gradient-to-b ${course.cardTheme} border-2 p-3.5 sm:p-5 text-white flex flex-col justify-between cursor-pointer shadow-lg`}
-                >
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-1">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 border border-white/25 flex items-center justify-center text-amber-300 font-black shrink-0">
-                        <Award className="w-5 h-5 sm:w-6 sm:h-6" />
-                      </div>
-                      <span
-                        className={`px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-black ${course.badgeColor}`}
-                      >
-                        {course.badgeText}
-                      </span>
-                    </div>
-
-                    <h4 className="font-black text-sm sm:text-lg leading-snug text-white pt-1">
-                      {course.title}
-                    </h4>
-
-                    <p className="text-[11px] sm:text-xs text-slate-200 line-clamp-3 leading-relaxed">
-                      {course.shortDesc}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 mt-3 border-t border-white/15 space-y-2.5">
-                    <div className="text-[10px] font-extrabold text-amber-300 truncate">
-                      {course.examSummary}
-                    </div>
-                    <button
-                      type="button"
-                      className={`w-full py-2 sm:py-2.5 rounded-xl font-black text-[11px] sm:text-xs flex items-center justify-center gap-1 shadow cursor-pointer ${course.btnColor}`}
-                    >
-                      <span>কোর্সে যান</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* BOTTOM WIDE BANNER: সমন্বিত ডিফেন্স প্রস্তুতি (অ্যাডভান্সড) */}
+          {/* BOTTOM WIDE BANNER: সমন্বিত ডিফেন্স প্রস্তুতি (অ্যাডভান্সড) (Matches Image 2) */}
           <div
             onClick={() => enterCourseDashboard("def_joint_3forces")}
-            className="premium-card rounded-3xl bg-gradient-to-r from-[#091538] via-[#1e1b4b] to-[#3b0764] text-white p-5 sm:p-7 border-2 border-purple-400/50 shadow-xl flex flex-wrap items-center justify-between gap-4 cursor-pointer"
+            className="premium-card rounded-3xl bg-gradient-to-r from-[#071538] via-[#1a1c54] to-[#3b1261] text-white p-5 sm:p-7 border-2 border-indigo-400/40 shadow-xl flex flex-wrap items-center justify-between gap-4 cursor-pointer"
           >
-            <div className="space-y-2">
-              <span className="px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black">
-                অল-ইন-ওয়ান ডিফেন্স প্যাকেজ
-              </span>
-              <h4 className="text-xl sm:text-2xl font-black">
-                সমন্বিত ডিফেন্স প্রস্তুতি (অ্যাডভান্সড)
-              </h4>
-              <p className="text-xs sm:text-sm text-purple-200">
-                আর্মি + এয়ার ফোর্স + নেভি + পুলিশ — সব বাহিনীর জন্য এক প্ল্যাটফর্মে সম্পূর্ণ প্রস্তুতি।
-              </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              {renderForceCrestBadges("def_joint_3forces")}
+              <div className="space-y-1.5">
+                <h4 className="text-lg sm:text-2xl font-black text-white">
+                  সমন্বিত ডিফেন্স প্রস্তুতি (অ্যাডভান্সড)
+                </h4>
+                <p className="text-xs sm:text-sm text-purple-200 font-medium">
+                  আর্মি + এয়ার ফোর্স + নেভি — সব বাহিনীর জন্য এক প্ল্যাটফর্মে সম্পূর্ণ প্রস্তুতি।
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1 text-xs font-extrabold">
+                  <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                    📖 লেকচার
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                    📄 MCQ
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15">
+                    ☆ মক টেস্ট
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <button className="px-6 py-3 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg cursor-pointer">
+            <button className="px-6 py-3 rounded-full bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg cursor-pointer">
               <span>কোর্সে যান</span>
               <ChevronRight className="w-4 h-4" />
             </button>
