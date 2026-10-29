@@ -1121,10 +1121,11 @@ export default function BCSPathPlatform() {
   const [editingQbId, setEditingQbId] = useState(null);
 
   // Admin Job News Form ("চাকরির আপডেট খবর")
+// Admin Job News Form ("চাকরির আপডেট খবর")
   const [jobNewsForm, setJobNewsForm] = useState({
     title: "",
     categoryBadge: "নিয়োগ বিজ্ঞপ্তি ও আপডেট",
-    publishDateText: new Date().toLocaleDateString("bn-BD"),
+    publishDateText: "", // <-- এখানে new Date() সরিয়ে খালি স্ট্রিং করা হলো
     coverImageUrl: "",
     articleContent: "",
     twoColumnDesktop: true,
