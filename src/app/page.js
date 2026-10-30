@@ -616,7 +616,7 @@ function renderRichTextWithShortImageTokens(htmlText, embeddedImages = {}) {
   );
 }
 
-function getWeeklyFriday8PMExamStatus() {
+function getWeeklyFriday8PMExamStatus(hasSubmittedCurrentExam = false) {
   const now = new Date();
   const day = now.getDay(); // 5 = Friday
   const daysUntilFriday = (5 - day + 7) % 7;
@@ -625,19 +625,30 @@ function getWeeklyFriday8PMExamStatus() {
   target.setDate(now.getDate() + daysUntilFriday);
   target.setHours(20, 0, 0, 0); // 8:00:00 PM
 
-  const examEndWindow = new Date(target.getTime() + 2 * 60 * 60 * 1000);
+  const examEndWindow = new Date(target.getTime() + 2 * 60 * 60 * 1000); // 10:00 PM Friday
 
-  if (daysUntilFriday === 0 && now >= target && now <= examEndWindow) {
+  // যদি আজ শুক্রবার রাত ৮:০০টা থেকে ১০:০০টার মধ্যে হয় এবং শিক্ষার্থী এখনো খাতা জমা না দিয়ে থাকে:
+  if (
+    daysUntilFriday === 0 &&
+    now >= target &&
+    now <= examEndWindow &&
+    !hasSubmittedCurrentExam
+  ) {
     return {
       targetDate: target,
-      isExamLiveNow: true,
+      isExamLiveNow: true, // কাউন্টডাউন শেষ, এখন লাইভ পরীক্ষা চলছে!
       registrationOpen: false,
       scheduleLabel:
         "শুক্রবার রাত ৮:০০টার লাইভ পরীক্ষা এখন চলছে! (রেজিস্ট্রেশন সমাপ্ত)",
     };
   }
 
-  if (daysUntilFriday === 0 && now > examEndWindow) {
+  // যদি পরীক্ষা শেষ হয়ে যায় (রাত ১০টার পরে অথবা শিক্ষার্থী ২০০ MCQ পরীক্ষা সম্পন্ন করে ফেলে),
+  // তাহলে তাৎক্ষণিকভাবে পরবর্তী শুক্রবারের (৭ দিন পরের) কাউন্টডাউন শুরু হবে:
+  if (
+    daysUntilFriday === 0 &&
+    (now > examEndWindow || (now >= target && hasSubmittedCurrentExam))
+  ) {
     target.setDate(target.getDate() + 7);
   }
 
@@ -1587,10 +1598,18 @@ export default function BCSPathPlatform() {
   const [contestTimeLeft, setContestTimeLeft] = useState(0);
   const [contestSubmitting, setContestSubmitting] = useState(false);
 
+const hasCompletedCurrentWeeklyExam = Boolean(
+    contests[0]?.submissions?.some(
+      (sub) =>
+        sub.studentKey === studentUniqueKey ||
+        (profile.phone && sub.phone === profile.phone)
+    )
+  );
+
   useEffect(() => {
     const updateCountdown = () => {
       const { targetDate, isExamLiveNow, registrationOpen, scheduleLabel } =
-        getWeeklyFriday8PMExamStatus();
+        getWeeklyFriday8PMExamStatus(hasCompletedCurrentWeeklyExam);
       const diffMs = Math.max(0, targetDate.getTime() - Date.now());
       const totalSec = Math.floor(diffMs / 1000);
       const d = Math.floor(totalSec / 86400);
@@ -1611,7 +1630,7 @@ export default function BCSPathPlatform() {
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [hasCompletedCurrentWeeklyExam]);
 
   // Admin CMS State
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
@@ -2378,7 +2397,7 @@ export default function BCSPathPlatform() {
     setShowContestRegModal(true);
   };
 
-  const handleLaunchWeeklyLiveExamRoom = () => {
+const handleLaunchWeeklyLiveExamRoom = () => {
     setSelectedCourse("bcs");
     setActivePortal("course_app");
     setActiveTab("biweekly_contest");
@@ -2393,9 +2412,17 @@ export default function BCSPathPlatform() {
       return;
     }
 
+    // কঠোর নিরাপত্তা: কাউন্টডাউন শেষ না হলে কখনোই প্রশ্ন ওপেন হবে না!
+    if (!countdownParts.isExamLiveNow) {
+      alert(
+        "⏳ এখনো পরীক্ষার সময় হয়নি! নির্ধারিত কাউন্টডাউন শেষ হলে ঠিক শুক্রবার রাত ৮:০০টায় প্রশ্ন ওপেন হবে।"
+      );
+      return;
+    }
+
     if (!currentActiveContest || !currentActiveContest.questions?.length) {
       alert(
-        "✅ আপনার রেজিস্ট্রেশন সম্পন্ন হয়েছে! অ্যাডমিন প্যানেল থেকে প্রশ্ন প্রকাশ করলেই লাইভ পরীক্ষা শুরু হবে।"
+        "⚠️ অ্যাডমিন প্যানেল থেকে এখনো এই পর্বের প্রশ্ন প্রকাশ করা হয়নি!"
       );
       return;
     }
@@ -4129,40 +4156,54 @@ export default function BCSPathPlatform() {
               <GatewayBooksExamTargetIllustration />
             </div>
 
-            {/* RIGHT COLUMN: SUBTLE CONTINUOUS ZOOM-IN/ZOOM-OUT COUNTDOWN CARD (Requirement 1) */}
+{/* RIGHT COLUMN: SUBTLE CONTINUOUS ZOOM-IN/ZOOM-OUT COUNTDOWN CARD */}
             <div className="lg:col-span-4">
               <div className="soft-zoom-pulse rounded-3xl bg-[#130929]/90 border-2 border-fuchsia-500/80 p-5 sm:p-6 space-y-4">
-                <div className="flex items-center justify-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-fuchsia-600/20 border border-fuchsia-500 flex items-center justify-center text-fuchsia-400">
-                    <Calendar className="w-5 h-5" />
-                  </div>
-                  <span className="font-black text-base sm:text-lg text-white">
-                    সাপ্তাহিক পরীক্ষার সময় বাকি
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-4 gap-2.5 text-center">
-                  {[
-                    { val: countdownParts.days, lbl: "দিন" },
-                    { val: countdownParts.hours, lbl: "ঘণ্টা" },
-                    { val: countdownParts.minutes, lbl: "মিনিট" },
-                    { val: countdownParts.seconds, lbl: "সেকেন্ড" },
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className="bg-[#1b0d38] border border-fuchsia-500/50 rounded-2xl py-2.5 px-2 shadow-inner"
-                    >
-                      <div className="text-xl sm:text-2xl font-black text-amber-400 tracking-wider">
-                        {item.val}
+                {/* কাউন্টডাউন শুধু তখনই দেখাবে যখন পরীক্ষা লাইভ চলছে না */}
+                {!countdownParts.isExamLiveNow ? (
+                  <>
+                    <div className="flex items-center justify-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-fuchsia-600/20 border border-fuchsia-500 flex items-center justify-center text-fuchsia-400">
+                        <Calendar className="w-5 h-5" />
                       </div>
-                      <div className="text-[11px] font-bold text-slate-200 mt-0.5">
-                        {item.lbl}
-                      </div>
+                      <span className="font-black text-base sm:text-lg text-white">
+                        সাপ্তাহিক পরীক্ষার সময় বাকি
+                      </span>
                     </div>
-                  ))}
-                </div>
 
-                {/* STRICT REGISTRATION STATUS & PREVIOUS RESULT BUTTONS (Requirement 1.ক, 1.খ, 1.গ) */}
+                    <div className="grid grid-cols-4 gap-2.5 text-center">
+                      {[
+                        { val: countdownParts.days, lbl: "দিন" },
+                        { val: countdownParts.hours, lbl: "ঘণ্টা" },
+                        { val: countdownParts.minutes, lbl: "মিনিট" },
+                        { val: countdownParts.seconds, lbl: "সেকেন্ড" },
+                      ].map((item, i) => (
+                        <div
+                          key={i}
+                          className="bg-[#1b0d38] border border-fuchsia-500/50 rounded-2xl py-2.5 px-2 shadow-inner"
+                        >
+                          <div className="text-xl sm:text-2xl font-black text-amber-400 tracking-wider">
+                            {item.val}
+                          </div>
+                          <div className="text-[11px] font-bold text-slate-200 mt-0.5">
+                            {item.lbl}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-400 text-center space-y-1">
+                    <div className="text-base sm:text-lg font-black text-emerald-300 flex items-center justify-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping inline-block" />
+                      <span>সাপ্তাহিক লাইভ পরীক্ষা এখন চলছে!</span>
+                    </div>
+                    <p className="text-xs text-slate-200 font-bold">
+                      নিচের ‘পরীক্ষা শুরু করুন’ বাটনে ক্লিক করে প্রশ্ন ওপেন করুন
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2.5 pt-1">
                   {!isRegisteredForCurrentCycle ? (
                     <button
@@ -4174,26 +4215,23 @@ export default function BCSPathPlatform() {
                     </button>
                   ) : (
                     <div className="space-y-2">
-                      <div className="w-full py-3 px-4 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-300 font-black text-xs sm:text-sm text-center flex items-center justify-center gap-2">
+                      <div className="w-full py-2.5 px-4 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-300 font-black text-xs sm:text-sm text-center flex items-center justify-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                         <span>আপনার রেজিস্ট্রেশন সম্পন্ন হয়েছে</span>
                       </div>
 
-                      {(countdownParts.isExamLiveNow ||
-                        (currentActiveContest?.questions?.length > 0 &&
-                          !myCurrentCycleSubmission)) && (
+                      {!myCurrentCycleSubmission && (
                         <button
                           type="button"
                           onClick={handleLaunchWeeklyLiveExamRoom}
-                          className="premium-btn w-full py-2.5 px-4 rounded-xl bg-amber-400 text-slate-950 font-black text-xs sm:text-sm cursor-pointer shadow"
+                          className="premium-btn w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm cursor-pointer shadow-lg"
                         >
-                          🚀 লাইভ পরীক্ষা কক্ষে প্রবেশ করুন →
+                          🚀 পরীক্ষা শুরু করুন →
                         </button>
                       )}
                     </div>
                   )}
 
-                  {/* "পূর্ববর্তী ফলাফল" Button — Shown ONLY if the user actually participated in a previous exam! */}
                   {myLatestParticipatedSubmission && (
                     <button
                       type="button"
@@ -6207,45 +6245,56 @@ export default function BCSPathPlatform() {
                   </p>
                 </div>
 
-                <div className="soft-zoom-pulse bg-white/10 backdrop-blur-md border border-fuchsia-400/40 p-4 rounded-2xl text-center shrink-0 w-full lg:w-auto">
-                  <div className="text-[11px] font-extrabold text-amber-300 uppercase mb-2">
-                    ⏳ {countdownParts.label}
+{!countdownParts.isExamLiveNow ? (
+                  <div className="soft-zoom-pulse bg-white/10 backdrop-blur-md border border-fuchsia-400/40 p-4 rounded-2xl text-center shrink-0 w-full lg:w-auto">
+                    <div className="text-[11px] font-extrabold text-amber-300 uppercase mb-2">
+                      ⏳ {countdownParts.label}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2.5 text-center">
+                      <div className="bg-slate-950/80 px-3 py-2 rounded-xl">
+                        <div className="text-xl font-black text-amber-400">
+                          {countdownParts.days}
+                        </div>
+                        <div className="text-[10px] font-bold text-purple-200">
+                          দিন
+                        </div>
+                      </div>
+                      <div className="bg-slate-950/80 px-3 py-2 rounded-xl">
+                        <div className="text-xl font-black text-amber-400">
+                          {countdownParts.hours}
+                        </div>
+                        <div className="text-[10px] font-bold text-purple-200">
+                          ঘণ্টা
+                        </div>
+                      </div>
+                      <div className="bg-slate-950/80 px-3 py-2 rounded-xl">
+                        <div className="text-xl font-black text-amber-400">
+                          {countdownParts.minutes}
+                        </div>
+                        <div className="text-[10px] font-bold text-purple-200">
+                          মিনিট
+                        </div>
+                      </div>
+                      <div className="bg-slate-950/80 px-3 py-2 rounded-xl">
+                        <div className="text-xl font-black text-emerald-400">
+                          {countdownParts.seconds}
+                        </div>
+                        <div className="text-[10px] font-bold text-purple-200">
+                          সেকেন্ড
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-2.5 text-center">
-                    <div className="bg-slate-950/80 px-3 py-2 rounded-xl">
-                      <div className="text-xl font-black text-amber-400">
-                        {countdownParts.days}
-                      </div>
-                      <div className="text-[10px] font-bold text-purple-200">
-                        দিন
-                      </div>
+                ) : (
+                  <div className="bg-emerald-500/20 border-2 border-emerald-400 px-5 py-4 rounded-2xl text-center shrink-0">
+                    <div className="text-base font-black text-emerald-300">
+                      🟢 লাইভ পরীক্ষা এখন চলছে!
                     </div>
-                    <div className="bg-slate-950/80 px-3 py-2 rounded-xl">
-                      <div className="text-xl font-black text-amber-400">
-                        {countdownParts.hours}
-                      </div>
-                      <div className="text-[10px] font-bold text-purple-200">
-                        ঘণ্টা
-                      </div>
-                    </div>
-                    <div className="bg-slate-950/80 px-3 py-2 rounded-xl">
-                      <div className="text-xl font-black text-amber-400">
-                        {countdownParts.minutes}
-                      </div>
-                      <div className="text-[10px] font-bold text-purple-200">
-                        মিনিট
-                      </div>
-                    </div>
-                    <div className="bg-slate-950/80 px-3 py-2 rounded-xl">
-                      <div className="text-xl font-black text-emerald-400">
-                        {countdownParts.seconds}
-                      </div>
-                      <div className="text-[10px] font-bold text-purple-200">
-                        সেকেন্ড
-                      </div>
+                    <div className="text-xs text-purple-100 mt-0.5">
+                      ‘পরীক্ষা শুরু করুন’ বাটনে ক্লিক করে অংশ নিন
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {!isContestRoomActive && (
