@@ -627,6 +627,11 @@ function getWeeklyFriday8PMExamStatus(hasSubmittedCurrentExam = false) {
 
   const examEndWindow = new Date(target.getTime() + 2 * 60 * 60 * 1000); // 10:00 PM Friday
 
+  const getFridayDateStamp = (d) =>
+    `${d.getFullYear()}_${String(d.getMonth() + 1).padStart(2, "0")}_${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+
   // যদি আজ শুক্রবার রাত ৮:০০টা থেকে ১০:০০টার মধ্যে হয় এবং শিক্ষার্থী এখনো খাতা জমা না দিয়ে থাকে:
   if (
     daysUntilFriday === 0 &&
@@ -636,15 +641,16 @@ function getWeeklyFriday8PMExamStatus(hasSubmittedCurrentExam = false) {
   ) {
     return {
       targetDate: target,
-      isExamLiveNow: true, // কাউন্টডাউন শেষ, এখন লাইভ পরীক্ষা চলছে!
+      isExamLiveNow: true,
       registrationOpen: false,
+      weeklyFridayKey: getFridayDateStamp(target),
       scheduleLabel:
         "শুক্রবার রাত ৮:০০টার লাইভ পরীক্ষা এখন চলছে! (রেজিস্ট্রেশন সমাপ্ত)",
     };
   }
 
-  // যদি পরীক্ষা শেষ হয়ে যায় (রাত ১০টার পরে অথবা শিক্ষার্থী ২০০ MCQ পরীক্ষা সম্পন্ন করে ফেলে),
-  // তাহলে তাৎক্ষণিকভাবে পরবর্তী শুক্রবারের (৭ দিন পরের) কাউন্টডাউন শুরু হবে:
+  // যদি পরীক্ষা শেষ হয়ে যায় (রাত ১০টার পরে অথবা শিক্ষার্থী পরীক্ষা সম্পন্ন করে ফেলে),
+  // তাহলে তাৎক্ষণিকভাবে পরবর্তী শুক্রবারের কাউন্টডাউন ও নতুন রেজিস্ট্রেশন সপ্তাহ শুরু হবে:
   if (
     daysUntilFriday === 0 &&
     (now > examEndWindow || (now >= target && hasSubmittedCurrentExam))
@@ -656,6 +662,7 @@ function getWeeklyFriday8PMExamStatus(hasSubmittedCurrentExam = false) {
     targetDate: target,
     isExamLiveNow: false,
     registrationOpen: true,
+    weeklyFridayKey: getFridayDateStamp(target),
     scheduleLabel:
       "প্রতি শুক্রবার রাত ৮:০০টায় সাপ্তাহিক লাইভ পরীক্ষা (মাসে ৪টি পরীক্ষা)",
   };
@@ -832,6 +839,99 @@ function RichTextColorEditor({
     });
   };
 
+  const handleDocFileUploadToText = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fileName = file.name.toLowerCase();
+
+    try {
+      if (fileName.endsWith(".txt")) {
+        const text = await file.text();
+        onChange(value ? `${value}\n\n${text}` : text);
+      } else if (fileName.endsWith(".docx")) {
+        // Browser-native DOCX (ZIP -> word/document.xml) extractor without external libraries
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        let extractedText = "";
+        let offset = 0;
+
+        while (offset < bytes.length - 30) {
+          if (view.getUint32(offset, true) !== 0x04034b50) break;
+          const compression = view.getUint16(offset + 8, true);
+          const compSize = view.getUint32(offset + 18, true);
+          const nameLen = view.getUint16(offset + 26, true);
+          const extraLen = view.getUint16(offset + 28, true);
+          const entryName = new TextDecoder().decode(
+            bytes.subarray(offset + 30, offset + 30 + nameLen)
+          );
+          const dataStart = offset + 30 + nameLen + extraLen;
+          const compData = bytes.subarray(dataStart, dataStart + compSize);
+
+          if (entryName === "word/document.xml") {
+            let xmlString = "";
+            if (compression === 0) {
+              xmlString = new TextDecoder().decode(compData);
+            } else if (
+              compression === 8 &&
+              typeof DecompressionStream !== "undefined"
+            ) {
+              const ds = new DecompressionStream("deflate-raw");
+              const writer = ds.writable.getWriter();
+              writer.write(compData);
+              writer.close();
+              const decompressed = await new Response(ds.readable).arrayBuffer();
+              xmlString = new TextDecoder().decode(decompressed);
+            }
+            if (xmlString) {
+              const xmlDoc = new DOMParser().parseFromString(
+                xmlString,
+                "application/xml"
+              );
+              const paragraphs = xmlDoc.getElementsByTagName("w:p");
+              const lines = [];
+              for (let i = 0; i < paragraphs.length; i++) {
+                const texts = paragraphs[i].getElementsByTagName("w:t");
+                let line = "";
+                for (let j = 0; j < texts.length; j++) {
+                  line += texts[j].textContent || "";
+                }
+                if (line.trim()) lines.push(line);
+              }
+              extractedText = lines.join("\n\n");
+            }
+            break;
+          }
+          offset = dataStart + compSize;
+        }
+
+        if (extractedText.trim()) {
+          onChange(value ? `${value}\n\n${extractedText}` : extractedText);
+        } else {
+          alert("⚠️ এই DOCX ফাইলটি থেকে টেক্সট পড়া যায়নি!");
+        }
+      } else if (fileName.endsWith(".doc")) {
+        const rawText = await file.text();
+        if (rawText.includes("<html") || rawText.includes("<body")) {
+          const docDom = new DOMParser().parseFromString(rawText, "text/html");
+          const clean = docDom.body?.innerText || "";
+          onChange(value ? `${value}\n\n${clean.trim()}` : clean.trim());
+        } else {
+          const cleaned = rawText
+            .replace(/[^\x20-\x7E\u0980-\u09FF\n\r\t]/g, " ")
+            .replace(/\s{3,}/g, "\n")
+            .trim();
+          onChange(value ? `${value}\n\n${cleaned}` : cleaned);
+        }
+      } else {
+        alert("⚠️ অনুগ্রহ করে .docx, .doc অথবা .txt ফাইল নির্বাচন করুন!");
+      }
+    } catch (err) {
+      alert("⚠️ ফাইলটি প্রসেস করতে সমস্যা হয়েছে!");
+    }
+    e.target.value = "";
+  };
+
   const handleFontSizeStep = (delta) => {
     const nextSize = Math.min(34, Math.max(13, fontSizePx + delta));
     setFontSizePx(nextSize);
@@ -925,6 +1025,16 @@ function RichTextColorEditor({
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleAddShortTokenImage(e.target.files?.[0])}
+                className="hidden"
+              />
+            </label>
+
+            <label className="px-3 py-1 bg-blue-700 text-white rounded-lg text-xs font-extrabold cursor-pointer hover:bg-blue-800 flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5" /> DOC/Text ফাইল নিন
+              <input
+                type="file"
+                accept=".doc,.docx,.txt"
+                onChange={handleDocFileUploadToText}
                 className="hidden"
               />
             </label>
@@ -1592,7 +1702,7 @@ export default function BCSPathPlatform() {
     institution: "",
     paymentMethod: "bkash",
   });
-  const [registeredCycleInLocal, setRegisteredCycleInLocal] = useState(0);
+  const [registeredCycleInLocal, setRegisteredCycleInLocal] = useState("");
   const [isContestRoomActive, setIsContestRoomActive] = useState(false);
   const [contestAnswers, setContestAnswers] = useState({});
   const [contestTimeLeft, setContestTimeLeft] = useState(0);
@@ -1935,9 +2045,8 @@ const hasCompletedCurrentWeeklyExam = Boolean(
       } catch (e) {}
     }
 
-    const savedCycle = Number(
-      localStorage.getItem("bcs_contest_registered_cycle") || 0
-    );
+    const savedCycle =
+      localStorage.getItem("bcs_contest_registered_cycle_v2") || "";
     setRegisteredCycleInLocal(savedCycle);
 
     const savedProg = localStorage.getItem("bcs_lecture_progress_v2");
@@ -2262,26 +2371,44 @@ const hasCompletedCurrentWeeklyExam = Boolean(
   const currentActiveContest = contests[0] || null;
   const currentContestCycle = Number(currentActiveContest?.cycleNumber || 1);
 
+  // প্রতিটি শুক্রবার এবং অ্যাডমিন সাইকেলের সমন্বয়ে ইউনিক রেজিস্ট্রেশন টোকেন তৈরি:
+  const currentExamStatusObj = getWeeklyFriday8PMExamStatus(
+    hasCompletedCurrentWeeklyExam
+  );
+  const activeWeeklyRegistrationToken = `${currentContestCycle}_${currentExamStatusObj.weeklyFridayKey}`;
+
   // 1. Check if student is registered for the CURRENT upcoming weekly exam cycle
-  const isRegisteredInCurrentCycleCloud =
-    currentActiveContest?.registrations?.some(
-      (r) =>
-        (r.studentKey === studentUniqueKey ||
-          (profile.phone && r.phone === profile.phone)) &&
-        Number(r.cycleNumber || 1) === currentContestCycle
-    ) || false;
+  const matchingCloudReg = currentActiveContest?.registrations?.find(
+    (r) =>
+      (r.studentKey === studentUniqueKey ||
+        (profile.phone && r.phone === profile.phone)) &&
+      Number(r.cycleNumber || 1) === currentContestCycle
+  );
+
+  // যদি রেজিস্ট্রেশনটি এই সপ্তাহের পরীক্ষার আগের কোনো সপ্তাহের পুরনো হয়, তবে নতুন সপ্তাহের জন্য আবার 'রেজিস্ট্রেশন করুন' দেখাবে:
+  const isCloudRegValidForThisUpcomingFriday = matchingCloudReg
+    ? new Date(matchingCloudReg.registeredAt).getTime() >
+      currentExamStatusObj.targetDate.getTime() - 7 * 24 * 60 * 60 * 1000 + 60000
+    : false;
 
   const isRegisteredForCurrentCycle =
-    isRegisteredInCurrentCycleCloud ||
-    registeredCycleInLocal === currentContestCycle;
+    registeredCycleInLocal === activeWeeklyRegistrationToken ||
+    (!dbLoading && isCloudRegValidForThisUpcomingFriday);
 
-  // 2. Check if student has submitted the CURRENT exam cycle
-  const myCurrentCycleSubmission =
+  // 2. Check if student has submitted the CURRENT exam cycle (valid for current week window)
+  const rawCurrentSubmission =
     currentActiveContest?.submissions?.find(
       (sub) =>
         sub.studentKey === studentUniqueKey ||
         (profile.phone && sub.phone === profile.phone)
     ) || null;
+
+  const myCurrentCycleSubmission =
+    rawCurrentSubmission &&
+    new Date(rawCurrentSubmission.submittedAt).getTime() >
+      currentExamStatusObj.targetDate.getTime() - 7 * 24 * 60 * 60 * 1000 + 60000
+      ? rawCurrentSubmission
+      : null;
 
   // 3. Check if student participated in the PREVIOUS exam (Archive or Completed Current)
   const archivedPreviousContest =
@@ -2372,10 +2499,10 @@ const hasCompletedCurrentWeeklyExam = Boolean(
     } catch (err) {}
 
     localStorage.setItem(
-      "bcs_contest_registered_cycle",
-      String(currentContestCycle)
+      "bcs_contest_registered_cycle_v2",
+      activeWeeklyRegistrationToken
     );
-    setRegisteredCycleInLocal(currentContestCycle);
+    setRegisteredCycleInLocal(activeWeeklyRegistrationToken);
     setShowContestRegModal(false);
 
     await fetchCloudData(studentUniqueKey, contestRegForm.phone.trim());
@@ -2427,8 +2554,10 @@ const handleLaunchWeeklyLiveExamRoom = () => {
       return;
     }
 
+    // প্রতি প্রশ্নের জন্য নির্ভুলভাবে ৩৬ সেকেন্ড করে মোট সেকেন্ড নির্ধারণ:
+    const totalDynamicSeconds = (currentActiveContest.questions.length || 200) * 36;
     setContestAnswers({});
-    setContestTimeLeft(currentActiveContest.questions.length * 36);
+    setContestTimeLeft(totalDynamicSeconds);
     setIsContestRoomActive(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -3354,7 +3483,7 @@ const handleLaunchWeeklyLiveExamRoom = () => {
       if (!subLecs[0].lecturePdfUrl && subLecs[0].mainContent)
         setContentViewMode("text");
       else setContentViewMode("pdf");
-      setActivePdfStep(subLecs[0].videoUrl ? "video" : "lecture");
+      setActivePdfStep(subLecs[0].videoUrl?.trim() ? "video" : "lecture");
     } else {
       setActiveLecture(null);
       setActivePdfStep("lecture");
@@ -5784,7 +5913,7 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                           onClick={() => {
                             setActiveLecture(lec);
                             setActivePdfStep(
-                              lec.videoUrl ? "video" : "lecture"
+                              lec.videoUrl?.trim() ? "video" : "lecture"
                             );
                             setStudentTwoColumnOverride(null);
                             smoothScrollToRef(studyResourceRef);
@@ -5852,7 +5981,7 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                           </h3>
                         </div>
 
-                        {activePdfStep !== "video" && (
+                        {activePdfStep !== "video" && activePdfStep !== "mcq_pdf" && (
                           <div className="flex flex-wrap items-center gap-2.5">
                             <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
                               <button
@@ -5880,25 +6009,33 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                        <button
-                          onClick={() => setActivePdfStep("video")}
-                          className={`premium-btn p-4 rounded-xl border text-left flex items-center gap-3 cursor-pointer ${
-                            activePdfStep === "video"
-                              ? "bg-[#2e1065] text-white border-[#2e1065]"
-                              : "bg-slate-50 text-slate-900"
-                          }`}
-                        >
-                          <PlayCircle className="w-5 h-5 shrink-0 text-amber-400" />
-                          <div>
-                            <div className="text-sm font-extrabold">
-                              ভিডিও লেকচার
+                      <div
+                        className={`grid grid-cols-1 sm:grid-cols-2 ${
+                          activeLecture.videoUrl?.trim()
+                            ? "lg:grid-cols-4"
+                            : "lg:grid-cols-3"
+                        } gap-3.5`}
+                      >
+                        {Boolean(activeLecture.videoUrl?.trim()) && (
+                          <button
+                            onClick={() => setActivePdfStep("video")}
+                            className={`premium-btn p-4 rounded-xl border text-left flex items-center gap-3 cursor-pointer ${
+                              activePdfStep === "video"
+                                ? "bg-[#2e1065] text-white border-[#2e1065]"
+                                : "bg-slate-50 text-slate-900"
+                            }`}
+                          >
+                            <PlayCircle className="w-5 h-5 shrink-0 text-amber-400" />
+                            <div>
+                              <div className="text-sm font-extrabold">
+                                ভিডিও লেকচার
+                              </div>
+                              <div className="text-xs opacity-80">
+                                {activeLecture.videoDuration || "ক্লাস ভিডিও"}
+                              </div>
                             </div>
-                            <div className="text-xs opacity-80">
-                              {activeLecture.videoDuration || "ক্লাস ভিডিও"}
-                            </div>
-                          </div>
-                        </button>
+                          </button>
+                        )}
 
                         <button
                           onClick={() => setActivePdfStep("lecture")}
@@ -5920,7 +6057,10 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                         </button>
 
                         <button
-                          onClick={() => setActivePdfStep("mcq_pdf")}
+                          onClick={() => {
+                            setActivePdfStep("mcq_pdf");
+                            setContentViewMode("text");
+                          }}
                           className={`premium-btn p-4 rounded-xl border text-left flex items-center gap-3 cursor-pointer ${
                             activePdfStep === "mcq_pdf"
                               ? "bg-emerald-600 text-white border-emerald-600"
@@ -5933,7 +6073,7 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                               ২. এই Chapter-এর সকল MCQ
                             </div>
                             <div className="text-xs opacity-80">
-                              PDF ও Text View
+                              শুধুমাত্র Text View
                             </div>
                           </div>
                         </button>
@@ -5958,25 +6098,17 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                         </button>
                       </div>
 
-                      {activePdfStep === "video" && (
-                        <div>
-                          {activeLecture.videoUrl ? (
-                            <div className="rounded-2xl overflow-hidden border-2 border-[#2e1065] bg-black aspect-video">
-                              <iframe
-                                src={getYoutubeEmbedUrl(activeLecture.videoUrl)}
-                                className="w-full h-full border-0"
-                                allowFullScreen
-                                title="Video"
-                              />
-                            </div>
-                          ) : (
-                            <div className="p-10 rounded-2xl border border-dashed text-center bg-slate-50 font-bold text-slate-600">
-                              এই লেকচারে কোনো ভিডিও যুক্ত করা হয়নি। পাশের মূল
-                              লেকচার নোট (PDF বা Text View) দেখুন।
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {activePdfStep === "video" &&
+                        Boolean(activeLecture.videoUrl?.trim()) && (
+                          <div className="rounded-2xl overflow-hidden border-2 border-[#2e1065] bg-black aspect-video">
+                            <iframe
+                              src={getYoutubeEmbedUrl(activeLecture.videoUrl)}
+                              className="w-full h-full border-0"
+                              allowFullScreen
+                              title="Video"
+                            />
+                          </div>
+                        )}
 
                       {activePdfStep === "lecture" && (
                         <div>
@@ -6009,27 +6141,20 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                       )}
 
                       {activePdfStep === "mcq_pdf" && (
-                        <div>
-                          {contentViewMode === "pdf" &&
-                          activeLecture.mcqPdfUrl ? (
-                            <iframe
-                              src={formatSecurePdfUrl(activeLecture.mcqPdfUrl)}
-                              className="w-full h-[760px] rounded-2xl border"
-                              title="MCQ PDF"
-                            />
-                          ) : (
-                            <div
-                              className="p-6 rounded-2xl bg-emerald-50/40 border text-base leading-relaxed whitespace-pre-line md:columns-2 md:gap-8 [column-rule:1px_solid_#a7f3d0] clearfix"
-                              dangerouslySetInnerHTML={{
-                                __html: renderRichTextWithShortImageTokens(
-                                  activeLecture.mcqTextContent ||
-                                    "এই অধ্যায়ের MCQ এখনো আপলোড করা হয়নি।",
-                                  activeLecture.embeddedImages
-                                ),
-                              }}
-                            />
-                          )}
-                        </div>
+                        <div
+                          className={`p-6 rounded-2xl bg-emerald-50/40 border text-base leading-relaxed whitespace-pre-line clearfix ${
+                            isCurrentTextTwoColumn()
+                              ? "md:columns-2 md:gap-8 [column-rule:1px_solid_#a7f3d0]"
+                              : ""
+                          }`}
+                          dangerouslySetInnerHTML={{
+                            __html: renderRichTextWithShortImageTokens(
+                              activeLecture.mcqTextContent ||
+                                "এই অধ্যায়ের MCQ এখনো আপলোড করা হয়নি।",
+                              activeLecture.embeddedImages
+                            ),
+                          }}
+                        />
                       )}
 
                       {activePdfStep === "written_pdf" && (
@@ -6238,10 +6363,18 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                   </h2>
                   <p className="text-xs sm:text-sm text-purple-200">
                     মোট প্রশ্ন:{" "}
-                    {currentActiveContest?.questions?.length || 200}টি · প্রতি
-                    প্রশ্নে ৩৬ সেকেন্ড · পাস মার্ক: ৬০% · নেগেটিভ মার্কিং: ০.৫০
-                    · পরীক্ষা শুরু হওয়ার ঠিক আগের মুহূর্ত পর্যন্ত রেজিস্ট্রেশন
-                    খোলা থাকবে
+                    {currentActiveContest?.questions?.length || 200}টি · মোট
+                    সময়:{" "}
+                    {Math.max(
+                      1,
+                      Math.round(
+                        ((currentActiveContest?.questions?.length || 200) * 36) /
+                          60
+                      )
+                    )}{" "}
+                    মিনিট (প্রতি প্রশ্নে ৩৬ সেকেন্ড) · পাস মার্ক: ৬০% · নেগেটিভ
+                    মার্কিং: ০.৫০ · পরীক্ষা শুরু হওয়ার ঠিক আগের মুহূর্ত পর্যন্ত
+                    রেজিস্ট্রেশন খোলা থাকবে
                   </p>
                 </div>
 
@@ -7246,7 +7379,7 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                         <div className="p-5 rounded-2xl bg-emerald-50/50 border-2 border-emerald-200 space-y-4">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <h4 className="font-extrabold text-base text-emerald-950">
-                              📗 ২. “এই Chapter-এর সকল MCQ” (PDF + Text View)
+                              📗 ২. “এই Chapter-এর সকল MCQ” (শুধুমাত্র Text View)
                             </h4>
                             <label className="inline-flex items-center gap-2 text-xs font-extrabold text-emerald-900 bg-white px-3 py-1.5 rounded-lg border border-emerald-300 cursor-pointer">
                               <input
@@ -7262,33 +7395,8 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                               <span>✓ ডেস্কটপে ২-কলামে MCQ দেখান</span>
                             </label>
                           </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              placeholder="সকল MCQ PDF লিংক অথবা ফাইল আপলোড করুন..."
-                              value={formData.mcqPdfUrl}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  mcqPdfUrl: e.target.value,
-                                })
-                              }
-                              className="flex-1 p-2.5 border rounded-xl bg-white"
-                            />
-                            <label className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-extrabold cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
-                              <Upload className="w-4 h-4" /> সকল MCQ PDF আপলোড
-                              <input
-                                type="file"
-                                accept="application/pdf"
-                                onChange={(e) =>
-                                  handleAdminPdfFileSelect(e, "mcqPdfUrl")
-                                }
-                                className="hidden"
-                              />
-                            </label>
-                          </div>
                           <RichTextColorEditor
-                            label="📝 এই Chapter-এর সকল MCQ — Text View"
+                            label="📝 এই Chapter-এর সকল MCQ — Text View (DOC ফাইল বা টেক্সট)"
                             value={formData.mcqTextContent}
                             onChange={(val) =>
                               setFormData({ ...formData, mcqTextContent: val })
@@ -7297,7 +7405,7 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                             onUpdateImages={(imgs) =>
                               setFormData({ ...formData, embeddedImages: imgs })
                             }
-                            placeholder="অধ্যায়ভিত্তিক সকল MCQ এখানে পেস্ট করুন..."
+                            placeholder="অধ্যায়ভিত্তিক সকল MCQ এখানে পেস্ট করুন অথবা উপরের 'DOC/Text ফাইল নিন' বাটনে ক্লিক করে ডক ফাইল আপলোড করুন..."
                             rows={5}
                           />
                         </div>
