@@ -5096,7 +5096,7 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                     ℹ️ {DEFENSE_COURSES_CATALOG[selectedCourse].officialNote}
                   </div>
                 )}
-                // group dashboard 
+                {/* group dashboard  */}
                 <GroupStudyEntryCard
                 selectedCourse={selectedCourse}
                 subjects={currentCourseSubjects}
