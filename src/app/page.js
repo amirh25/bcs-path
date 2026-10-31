@@ -617,7 +617,8 @@ function renderRichTextWithShortImageTokens(htmlText, embeddedImages = {}) {
 }
 
 function getWeeklyFriday8PMExamStatus(hasSubmittedCurrentExam = false) {
-  const now = new Date();
+  // প্রিরেন্ডার বা সার্ভার সাইড রেন্ডারিংয়ের সময় আনস্টেবল new Date() ক্রাশ এড়াতে সেফ ফলব্যাক
+  const now = typeof window !== "undefined" ? new Date() : new Date("2026-06-06T20:00:00");
   const day = now.getDay(); // 5 = Friday
   const daysUntilFriday = (5 - day + 7) % 7;
 
