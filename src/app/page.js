@@ -72,6 +72,10 @@ import {
 } from "lucide-react";
 import { initialSubjects } from "../data/bcsData";
 
+//  group study er jonno ekhan theke
+import { GroupStudyEntryCard } from "../components/GroupStudyHub";
+// niche theke ager code
+
 /**
  * ============================================================================
  * 1. BCS & MULTI-TRACK DEFENSE COURSE CONFIGURATIONS & OFFICIAL SYLLABUS
@@ -5092,6 +5096,32 @@ const handleLaunchWeeklyLiveExamRoom = () => {
                     ℹ️ {DEFENSE_COURSES_CATALOG[selectedCourse].officialNote}
                   </div>
                 )}
+                // group dashboard 
+                <GroupStudyEntryCard
+                selectedCourse={selectedCourse}
+                subjects={currentCourseSubjects}
+                lectures={courseFilteredLectures}
+                syllabusItems={syllabusItems}
+                examSets={examSets}
+                studentKey={studentUniqueKey}
+                profile={profile}
+                progressMap={progressMap}
+                onUpdateLectureProgress={(nextProgressMap) => {
+                  setProgressMap(nextProgressMap);
+                  localStorage.setItem(
+                    "bcs_lecture_progress_v2",
+                    JSON.stringify(nextProgressMap)
+                  );
+                }}
+                onIncrementQuizCount={() => {
+                  const nextCount = completedQuizzesCount + 1;
+                  setCompletedQuizzesCount(nextCount);
+                  localStorage.setItem(
+                    "bcs_completed_quizzes_count",
+                    String(nextCount)
+                  );
+                }}
+              />
             </aside>
 
             <div className="lg:col-span-8 space-y-6">
