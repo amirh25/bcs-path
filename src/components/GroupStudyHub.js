@@ -3,23 +3,28 @@
 /**
  * ============================================================================
  * FILE: src/components/GroupStudyHub.js
- * PURPOSE: All-in-One Independent Group Study & Solo Study Hub
- *          (Dashboard Entry Card + Modal Overlay + Live Sync Room + Solo Timer
- *          + Cascading Topic Selector + Post-Study MCQ Exam + Progress Tracker)
+ * PURPOSE: High-Speed, Zero-Latency Group Study & Solo Study Hub
+ * KEY UPGRADES:
+ * 1. Instant 0ms Optimistic UI for Pause/Resume/Start (No API lag).
+ * 2. Independent User-Specific Timer & Pause/Resume System per device.
+ * 3. "চলমান Group গুলো" (Running Groups) Drawer & Tab next to "আপনার অগ্রগতি"
+ *    with Member details, Slot check, Auto-Leave on switch, and Auto-Cleanup.
+ * 4. Custom Topic Input field for Host & Solo Study (with quick suggestions).
+ * 5. Automatic "Study Session শেষ। নতুন Session শুরু করুন।" notification banner.
+ * 6. Topic MCQ removed cleanly.
+ * 7. Dashboard Entry Card updated to show only "Group Study" & "Solo Study"
+ *    plus "আজকের স্টাডি".
  * ============================================================================
  */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Users,
   Clock,
   CheckCircle2,
-  XCircle,
-  HelpCircle,
   Plus,
   Lock,
   Unlock,
-  Sparkles,
   BarChart3,
   User,
   BookOpen,
@@ -34,32 +39,20 @@ import {
   RotateCcw,
   Target,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Award,
-  TrendingUp,
   X,
   RefreshCw,
+  Sparkles,
+  BellRing,
+  ArrowRightLeft,
 } from "lucide-react";
 
 const STORAGE_KEYS = {
-  UI_STATE: "bcs_gs_modal_ui_state_v1",
-  SOLO_TIMER: "bcs_gs_solo_active_timer_v1",
-  RECORDS_CACHE: "bcs_gs_activity_records_v1",
-  DAILY_RESET_STAMP: "bcs_gs_today_reset_offset_v1",
+  UI_STATE: "bcs_gs_modal_ui_state_v2",
+  SOLO_TIMER: "bcs_gs_solo_active_timer_v2",
+  USER_ROOM_TIMERS: "bcs_gs_user_room_timers_v2",
+  RECORDS_CACHE: "bcs_gs_activity_records_v2",
+  DAILY_RESET_STAMP: "bcs_gs_today_reset_offset_v2",
 };
-
-let serverClockOffsetMs = 0;
-
-function getSynchronizedServerNowMs() {
-  return Date.now() + serverClockOffsetMs;
-}
-
-function updateClockOffset(serverNowMs) {
-  if (serverNowMs && typeof serverNowMs === "number") {
-    serverClockOffsetMs = serverNowMs - Date.now();
-  }
-}
 
 function getTodayDateKey() {
   const now = new Date();
@@ -93,85 +86,38 @@ function formatDigitalClock(totalSeconds = 0) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function deriveTopicsForSubjectAndLecture({
+function deriveSuggestedTopics({
   subjectObj,
   lectureObj,
   syllabusItems = [],
   selectedCourse = "bcs",
 }) {
-  const topics = [];
+  const suggestions = [];
 
-  if (lectureObj) {
-    const rawTitle = lectureObj.title || lectureObj.chapterName || "";
-    const parts = rawTitle
-      .split(/[,،•|—\-:]/)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 2 && !/^লেকচার|^Lecture/i.test(s));
-
-    if (parts.length > 1) {
-      parts.forEach((p, idx) => {
-        topics.push({
-          id: `lec_${lectureObj.lectureNo}_top_${idx + 1}`,
-          title: p,
-          lectureNo: lectureObj.lectureNo,
-        });
-      });
-    } else {
-      topics.push({
-        id: `lec_${lectureObj.lectureNo}_main`,
-        title: rawTitle || `লেকচার ${lectureObj.lectureNo} মূল টপিক`,
-        lectureNo: lectureObj.lectureNo,
-      });
-    }
+  if (lectureObj?.title) {
+    const cleanTitle = lectureObj.title
+      .replace(/^লেকচার\s*\d*[:.\-]?\s*/i, "")
+      .replace(/^Lecture\s*\d*[:.\-]?\s*/i, "")
+      .trim();
+    if (cleanTitle) suggestions.push(cleanTitle);
   }
 
   const customSyllabus = syllabusItems.filter(
     (s) => s.courseType === selectedCourse && s.subjectId === subjectObj?.id
   );
-  customSyllabus.forEach((cs, idx) => {
-    if (cs.topicTitle && !topics.some((t) => t.title === cs.topicTitle)) {
-      topics.push({
-        id: `syl_custom_${cs._id || idx}`,
-        title: cs.topicTitle,
-        lectureNo: lectureObj?.lectureNo || idx + 1,
-      });
+  customSyllabus.forEach((cs) => {
+    if (cs.topicTitle && !suggestions.includes(cs.topicTitle)) {
+      suggestions.push(cs.topicTitle);
     }
   });
 
-  (subjectObj?.syllabusBreakdown || []).forEach((sb, idx) => {
-    const subParts = (sb.topic || "")
-      .split(/[,ও•]/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 2);
-
-    if (subParts.length > 1) {
-      subParts.forEach((sp, sIdx) => {
-        if (!topics.some((t) => t.title === sp)) {
-          topics.push({
-            id: `syl_${subjectObj.id}_${idx}_${sIdx}`,
-            title: sp,
-            lectureNo: lectureObj?.lectureNo || 1,
-          });
-        }
-      });
-    } else if (sb.topic && !topics.some((t) => t.title === sb.topic)) {
-      topics.push({
-        id: `syl_${subjectObj.id}_${idx}`,
-        title: sb.topic,
-        lectureNo: lectureObj?.lectureNo || 1,
-      });
+  (subjectObj?.syllabusBreakdown || []).forEach((sb) => {
+    if (sb.topic && !suggestions.includes(sb.topic)) {
+      suggestions.push(sb.topic);
     }
   });
 
-  if (topics.length === 0) {
-    topics.push({
-      id: `default_${subjectObj?.id || "gen"}_1`,
-      title: subjectObj?.title || "মূল অধ্যায় ও অনুশীলন",
-      lectureNo: lectureObj?.lectureNo || 1,
-    });
-  }
-
-  return topics;
+  return suggestions.slice(0, 6);
 }
 
 function computeStudyStatistics(records = []) {
@@ -194,13 +140,11 @@ function computeStudyStatistics(records = []) {
   const completions = records.filter(
     (r) => r.recordType === "topic_completion"
   );
-  const mcqResults = records.filter((r) => r.recordType === "mcq_result");
 
   let totalStudySec = 0;
   let todayStudySec = 0;
   let todaySessionsCount = 0;
   let weeklyStudySec = 0;
-  const subjectSecondsMap = {};
 
   sessions.forEach((s) => {
     const dur = Math.max(0, Number(s.durationSec || 0));
@@ -217,28 +161,7 @@ function computeStudyStatistics(records = []) {
     if (createdMs >= sevenDaysAgoMs) {
       weeklyStudySec += dur;
     }
-    const subKey = s.subjectTitle || s.subjectId || "অন্যান্য";
-    subjectSecondsMap[subKey] = (subjectSecondsMap[subKey] || 0) + dur;
   });
-
-  const todaySessionsList = sessions.filter((s) => {
-    const createdMs = s.createdAt
-      ? new Date(s.createdAt).getTime()
-      : Date.now();
-    return (s.dateKey || todayKey) === todayKey && createdMs >= resetAfterMs;
-  });
-
-  let totalMcqAttempted = 0;
-  let totalMcqCorrect = 0;
-  mcqResults.forEach((m) => {
-    totalMcqAttempted += Number(m.mcqTotal || 0);
-    totalMcqCorrect += Number(m.mcqCorrect || 0);
-  });
-
-  const mcqAccuracyPercent =
-    totalMcqAttempted > 0
-      ? Math.round((totalMcqCorrect / totalMcqAttempted) * 100)
-      : 0;
 
   return {
     totalStudySec,
@@ -246,21 +169,14 @@ function computeStudyStatistics(records = []) {
     todaySessionsCount,
     weeklyStudySec,
     totalSessionsCount: sessions.length,
-    todaySessionsList,
     completions,
-    mcqResults,
-    mcqAccuracyPercent,
-    subjectBreakdown: Object.entries(subjectSecondsMap).map(([title, sec]) => ({
-      title,
-      seconds: sec,
-    })),
   };
 }
 
 /**
- * Cascading Subject → Lecture → Topic Selector Sub-Component
+ * Subject -> Lecture -> Custom Topic Input Component (Requirement 4)
  */
-function CascadingTopicSelector({
+function SubjectLectureCustomTopicSelector({
   subjects = [],
   lectures = [],
   syllabusItems = [],
@@ -290,9 +206,9 @@ function CascadingTopicSelector({
       (l) => Number(l.lectureNo) === Number(selection.lectureNo)
     ) || subjectLectures[0];
 
-  const availableTopics = useMemo(
+  const suggestedTopics = useMemo(
     () =>
-      deriveTopicsForSubjectAndLecture({
+      deriveSuggestedTopics({
         subjectObj: currentSubject,
         lectureObj: currentLecture,
         syllabusItems,
@@ -300,10 +216,6 @@ function CascadingTopicSelector({
       }),
     [currentSubject, currentLecture, syllabusItems, selectedCourse]
   );
-
-  const currentTopic =
-    availableTopics.find((t) => t.id === selection.topicId) ||
-    availableTopics[0];
 
   const handleSubjectChange = (newSubId) => {
     const nextSub = subjects.find((s) => s.id === newSubId) || subjects[0];
@@ -318,21 +230,14 @@ function CascadingTopicSelector({
         nextSub?.syllabusBreakdown?.[0]?.topic || nextSub?.title || "লেকচার ১",
     };
 
-    const nextTopics = deriveTopicsForSubjectAndLecture({
-      subjectObj: nextSub,
-      lectureObj: firstLec,
-      syllabusItems,
-      selectedCourse,
-    });
-
     onChangeSelection({
       subjectId: nextSub.id,
       subjectTitle: nextSub.title,
       lectureId: String(firstLec._id || firstLec.id || ""),
       lectureNo: Number(firstLec.lectureNo || 1),
       lectureTitle: firstLec.title,
-      topicId: nextTopics[0]?.id || "top_1",
-      topicTitle: nextTopics[0]?.title || nextSub.title,
+      topicId: `custom_${Date.now()}`,
+      topicTitle: selection.topicTitle || "",
     });
   };
 
@@ -341,93 +246,104 @@ function CascadingTopicSelector({
       subjectLectures.find((l) => Number(l.lectureNo) === Number(newLecNo)) ||
       subjectLectures[0];
 
-    const nextTopics = deriveTopicsForSubjectAndLecture({
-      subjectObj: currentSubject,
-      lectureObj: foundLec,
-      syllabusItems,
-      selectedCourse,
-    });
-
     onChangeSelection({
+      ...selection,
       subjectId: currentSubject.id,
       subjectTitle: currentSubject.title,
       lectureId: String(foundLec?._id || foundLec?.id || ""),
       lectureNo: Number(foundLec?.lectureNo || 1),
       lectureTitle: foundLec?.title || `লেকচার ${newLecNo}`,
-      topicId: nextTopics[0]?.id || "top_1",
-      topicTitle: nextTopics[0]?.title || currentSubject.title,
-    });
-  };
-
-  const handleTopicChange = (newTopicId) => {
-    const foundTop =
-      availableTopics.find((t) => t.id === newTopicId) || availableTopics[0];
-    onChangeSelection({
-      subjectId: currentSubject.id,
-      subjectTitle: currentSubject.title,
-      lectureId: String(currentLecture?._id || currentLecture?.id || ""),
-      lectureNo: Number(currentLecture?.lectureNo || 1),
-      lectureTitle: currentLecture?.title || "লেকচার ১",
-      topicId: foundTop.id,
-      topicTitle: foundTop.title,
     });
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <div>
-        <label className="text-xs font-extrabold text-slate-700 flex items-center gap-1.5 mb-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-[#4c1d95]" />
-          <span>বিষয় নির্বাচন করুন</span>
-        </label>
-        <select
-          value={currentSubject?.id || ""}
-          onChange={(e) => handleSubjectChange(e.target.value)}
-          className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-xs sm:text-sm font-extrabold text-slate-900 outline-none focus:border-[#4c1d95]"
-        >
-          {subjects.map((sub) => (
-            <option key={sub.id} value={sub.id}>
-              {sub.title}
-            </option>
-          ))}
-        </select>
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs font-extrabold text-slate-700 flex items-center gap-1.5 mb-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-[#4c1d95]" />
+            <span>১. বিষয় নির্বাচন করুন</span>
+          </label>
+          <select
+            value={currentSubject?.id || ""}
+            onChange={(e) => handleSubjectChange(e.target.value)}
+            className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-xs sm:text-sm font-extrabold text-slate-900 outline-none focus:border-[#4c1d95]"
+          >
+            {subjects.map((sub) => (
+              <option key={sub.id} value={sub.id}>
+                {sub.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-extrabold text-slate-700 flex items-center gap-1.5 mb-1.5">
+            <FileText className="w-3.5 h-3.5 text-[#4c1d95]" />
+            <span>২. লেকচার নির্বাচন করুন</span>
+          </label>
+          <select
+            value={currentLecture?.lectureNo || 1}
+            onChange={(e) => handleLectureChange(Number(e.target.value))}
+            className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-xs sm:text-sm font-extrabold text-slate-900 outline-none focus:border-[#4c1d95]"
+          >
+            {subjectLectures.map((lec) => (
+              <option key={lec.lectureNo} value={lec.lectureNo}>
+                লেকচার {lec.lectureNo}: {lec.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-extrabold text-slate-700 flex items-center gap-1.5 mb-1.5">
+            <Tag className="w-3.5 h-3.5 text-[#4c1d95]" />
+            <span>৩. লেকচারের টপিক লিখুন *</span>
+          </label>
+          <input
+            type="text"
+            value={selection.topicTitle || ""}
+            onChange={(e) =>
+              onChangeSelection({
+                ...selection,
+                topicId: `custom_${selection.subjectId}_${selection.lectureNo}`,
+                topicTitle: e.target.value,
+              })
+            }
+            placeholder="যেমন: ধ্বনি ও বর্ণ প্রকরণ / শতকরা..."
+            className="w-full p-2.5 rounded-xl border-2 border-purple-300 bg-white text-xs sm:text-sm font-extrabold text-slate-900 outline-none focus:border-[#4c1d95]"
+          />
+        </div>
       </div>
 
-      <div>
-        <label className="text-xs font-extrabold text-slate-700 flex items-center gap-1.5 mb-1.5">
-          <FileText className="w-3.5 h-3.5 text-[#4c1d95]" />
-          <span>লেকচার নির্বাচন করুন</span>
-        </label>
-        <select
-          value={currentLecture?.lectureNo || 1}
-          onChange={(e) => handleLectureChange(Number(e.target.value))}
-          className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-xs sm:text-sm font-extrabold text-slate-900 outline-none focus:border-[#4c1d95]"
-        >
-          {subjectLectures.map((lec) => (
-            <option key={lec.lectureNo} value={lec.lectureNo}>
-              লেকচার {lec.lectureNo}: {lec.title}
-            </option>
+      {suggestedTopics.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <span className="text-[11px] font-extrabold text-slate-500 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-amber-500" /> টপিক সাজেশন (ক্লিক
+            করে বসান বা উপরে নিজে লিখুন):
+          </span>
+          {suggestedTopics.map((sug, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() =>
+                onChangeSelection({
+                  ...selection,
+                  topicId: `custom_${selection.subjectId}_${selection.lectureNo}_${i}`,
+                  topicTitle: sug,
+                })
+              }
+              className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold transition cursor-pointer ${
+                selection.topicTitle === sug
+                  ? "bg-[#4c1d95] text-white"
+                  : "bg-purple-50 hover:bg-purple-100 text-[#4c1d95] border border-purple-200"
+              }`}
+            >
+              {sug}
+            </button>
           ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="text-xs font-extrabold text-slate-700 flex items-center gap-1.5 mb-1.5">
-          <Tag className="w-3.5 h-3.5 text-[#4c1d95]" />
-          <span>টপিক নির্বাচন করুন</span>
-        </label>
-        <select
-          value={currentTopic?.id || ""}
-          onChange={(e) => handleTopicChange(e.target.value)}
-          className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-xs sm:text-sm font-extrabold text-slate-900 outline-none focus:border-[#4c1d95]"
-        >
-          {availableTopics.map((top) => (
-            <option key={top.id} value={top.id}>
-              {top.title}
-            </option>
-          ))}
-        </select>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -440,16 +356,15 @@ export function GroupStudyEntryCard({
   subjects = [],
   lectures = [],
   syllabusItems = [],
-  examSets = [],
   studentKey = "student_default",
   profile = {},
   progressMap = {},
   onUpdateLectureProgress,
-  onIncrementQuizCount,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState("group_lobby"); // "group_lobby" | "active_room" | "solo_study" | "mcq_exam" | "progress"
+  const [modalTab, setModalTab] = useState("group_lobby"); // "group_lobby" | "active_room" | "solo_study" | "progress" | "running_groups"
   const [roomSubTab, setRoomSubTab] = useState("create");
+  const [showRunningGroupsDrawer, setShowRunningGroupsDrawer] = useState(false);
 
   const defaultSelection = useMemo(() => {
     const firstSub = subjects[0] || { id: "bangla", title: "বাংলা" };
@@ -460,22 +375,16 @@ export function GroupStudyEntryCard({
       lectureNo: 1,
       title: firstSub.syllabusBreakdown?.[0]?.topic || firstSub.title,
     };
-    const derivedTopics = deriveTopicsForSubjectAndLecture({
-      subjectObj: firstSub,
-      lectureObj: firstLec,
-      syllabusItems,
-      selectedCourse,
-    });
     return {
       subjectId: firstSub.id,
       subjectTitle: firstSub.title,
       lectureId: String(firstLec._id || firstLec.id || ""),
       lectureNo: Number(firstLec.lectureNo || 1),
       lectureTitle: firstLec.title,
-      topicId: derivedTopics[0]?.id || "top_1",
-      topicTitle: derivedTopics[0]?.title || firstSub.title,
+      topicId: `custom_${firstSub.id}_1`,
+      topicTitle: firstLec.title || "",
     };
-  }, [subjects, lectures, syllabusItems, selectedCourse]);
+  }, [subjects, lectures]);
 
   const [selection, setSelection] = useState(defaultSelection);
 
@@ -486,30 +395,40 @@ export function GroupStudyEntryCard({
   const [maxMembers, setMaxMembers] = useState(10);
   const [inviteCodeInput, setInviteCodeInput] = useState("");
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   // Cloud State
   const [publicRooms, setPublicRooms] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
-  const [liveRoomRemainingSec, setLiveRoomRemainingSec] = useState(2700);
   const [activityRecords, setActivityRecords] = useState([]);
   const [loadingSync, setLoadingSync] = useState(false);
   const [statusBanner, setStatusBanner] = useState("");
+
+  // Independent User-Specific Group Room Timer State (Requirement 1, 2 & 5)
+  const [myRoomTimer, setMyRoomTimer] = useState({
+    roomCode: "",
+    durationSec: 2700,
+    remainingSecAtAnchor: 2700,
+    anchorClientMs: 0,
+    isRunning: true,
+    isEnded: false,
+  });
+  const [myRoomDisplaySec, setMyRoomDisplaySec] = useState(2700);
+  const [sessionEndedNotice, setSessionEndedNotice] = useState(false);
+  const myRoomTimerRef = useRef(myRoomTimer);
+  useEffect(() => {
+    myRoomTimerRef.current = myRoomTimer;
+  }, [myRoomTimer]);
 
   // Solo Study Timer State
   const [soloTimer, setSoloTimer] = useState({
     isRunning: false,
     startedAtMs: 0,
     accumulatedSec: 0,
-    dailyGoalHours: 4,
+    targetDurationSec: 45 * 60,
+    isEnded: false,
   });
   const [soloDisplaySec, setSoloDisplaySec] = useState(0);
-
-  // Topic MCQ Exam State
-  const [questionCountLimit, setQuestionCountLimit] = useState(10);
-  const [examCurrentIdx, setExamCurrentIdx] = useState(0);
-  const [examAnswersMap, setExamAnswersMap] = useState({});
-  const [examSubmitted, setExamSubmitted] = useState(false);
-  const [examTimeLeftSec, setExamTimeLeftSec] = useState(360);
 
   // Load saved local state on mount / course switch
   useEffect(() => {
@@ -521,9 +440,7 @@ export function GroupStudyEntryCard({
       if (savedUiRaw) {
         const parsed = JSON.parse(savedUiRaw);
         if (parsed.selection) setSelection(parsed.selection);
-        if (parsed.modalTab && parsed.modalTab !== "mcq_exam") {
-          setModalTab(parsed.modalTab);
-        }
+        if (parsed.modalTab) setModalTab(parsed.modalTab);
       } else {
         setSelection(defaultSelection);
       }
@@ -537,6 +454,48 @@ export function GroupStudyEntryCard({
       if (savedSolo) setSoloTimer(JSON.parse(savedSolo));
     } catch (e) {}
   }, [selectedCourse, defaultSelection]);
+
+  // Helper to persist user-specific room timer in localStorage
+  const saveUserRoomTimerToLocal = (roomCode, timerObj) => {
+    setMyRoomTimer(timerObj);
+    if (typeof window === "undefined" || !roomCode) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.USER_ROOM_TIMERS);
+      const map = raw ? JSON.parse(raw) : {};
+      map[`${roomCode}_${studentKey}`] = timerObj;
+      localStorage.setItem(STORAGE_KEYS.USER_ROOM_TIMERS, JSON.stringify(map));
+    } catch (e) {}
+  };
+
+  const initializeOrRestoreUserRoomTimer = (roomDoc) => {
+    if (!roomDoc || typeof window === "undefined") return;
+    const code = roomDoc.roomCode;
+    const totalDur = Number(roomDoc.scheduledDurationSec || 2700);
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.USER_ROOM_TIMERS);
+      const map = raw ? JSON.parse(raw) : {};
+      const existing = map[`${code}_${studentKey}`];
+
+      if (existing && existing.roomCode === code) {
+        setMyRoomTimer(existing);
+        setSessionEndedNotice(Boolean(existing.isEnded));
+        return;
+      }
+    } catch (e) {}
+
+    // Fresh independent timer for this student in this room
+    const freshTimer = {
+      roomCode: code,
+      durationSec: totalDur,
+      remainingSecAtAnchor: totalDur,
+      anchorClientMs: Date.now(),
+      isRunning: true,
+      isEnded: false,
+    };
+    setSessionEndedNotice(false);
+    saveUserRoomTimerToLocal(code, freshTimer);
+  };
 
   // Save UI state when changed
   useEffect(() => {
@@ -553,8 +512,25 @@ export function GroupStudyEntryCard({
     } catch (e) {}
   }, [selectedCourse, modalTab, selection, activeRoom?.roomCode]);
 
-  // Sync with Backend API
-  const syncWithBackend = async (overrideRoomCode = "") => {
+  // API Helper
+  const postAction = async (action, payload) => {
+    try {
+      const res = await fetch("/api/group-study", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, payload }),
+      });
+      return await res.json();
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  };
+
+  // High-speed background sync
+  const syncWithBackend = async (
+    overrideRoomCode = "",
+    fetchRecords = false
+  ) => {
     setLoadingSync(true);
     try {
       let savedCode = "";
@@ -565,23 +541,28 @@ export function GroupStudyEntryCard({
         if (raw) savedCode = JSON.parse(raw)?.activeRoomCode || "";
       }
       const codeToCheck =
-        overrideRoomCode || activeRoom?.roomCode || savedCode || "";
+        overrideRoomCode !== undefined
+          ? overrideRoomCode
+          : activeRoom?.roomCode || savedCode || "";
 
       const params = new URLSearchParams({
         courseType: selectedCourse,
         studentKey,
+        includeRecords: fetchRecords ? "1" : "0",
         ...(codeToCheck ? { roomCode: codeToCheck } : {}),
       });
 
       const res = await fetch(`/api/group-study?${params.toString()}`);
       const data = await res.json();
       if (data.success) {
-        if (data.serverNowMs) updateClockOffset(data.serverNowMs);
         setPublicRooms(data.publicRooms || []);
         if (data.activeRoom && data.activeRoom.status !== "ended") {
           setActiveRoom(data.activeRoom);
-        } else if (activeRoom && data.activeRoom?.status === "ended") {
-          setActiveRoom(data.activeRoom);
+          if (myRoomTimerRef.current.roomCode !== data.activeRoom.roomCode) {
+            initializeOrRestoreUserRoomTimer(data.activeRoom);
+          }
+        } else if (!codeToCheck) {
+          setActiveRoom(null);
         }
         if (Array.isArray(data.records)) {
           setActivityRecords(data.records);
@@ -596,43 +577,87 @@ export function GroupStudyEntryCard({
   };
 
   useEffect(() => {
-    syncWithBackend();
+    syncWithBackend(undefined, true);
   }, [selectedCourse, studentKey]);
 
+  // Lightweight polling while modal is open
   useEffect(() => {
-    if (!isModalOpen && !activeRoom) return;
-    const poll = setInterval(() => syncWithBackend(), 4000);
+    if (!isModalOpen) return;
+    const poll = setInterval(() => {
+      syncWithBackend(activeRoom?.roomCode || "", false);
+    }, 6000);
     return () => clearInterval(poll);
   }, [isModalOpen, activeRoom?.roomCode, selectedCourse, studentKey]);
 
-  // Live Synchronized Group Room Timer Effect
+  // Independent User-Specific Group Room Timer Tick Effect (Requirement 2 & 5)
   useEffect(() => {
-    if (!activeRoom) return;
-    const tick = () => {
-      const ts = activeRoom.timerState;
-      if (!ts) {
-        setLiveRoomRemainingSec(activeRoom.scheduledDurationSec || 2700);
-        return;
-      }
-      if (!ts.isRunning || !ts.startedAtServerMs) {
-        setLiveRoomRemainingSec(
-          Math.max(0, Number(ts.remainingSecAtPause ?? ts.durationSec ?? 0))
-        );
-        return;
-      }
-      const elapsed = Math.floor(
-        (getSynchronizedServerNowMs() - ts.startedAtServerMs) / 1000
-      );
-      setLiveRoomRemainingSec(
-        Math.max(0, Number(ts.remainingSecAtPause || ts.durationSec) - elapsed)
-      );
-    };
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [activeRoom]);
+    if (!activeRoom || myRoomTimer.roomCode !== activeRoom.roomCode) return;
 
-  // Solo Study Timer Tick Effect
+    const tick = () => {
+      const current = myRoomTimerRef.current;
+      if (current.isEnded) {
+        setMyRoomDisplaySec(0);
+        return;
+      }
+      if (!current.isRunning || !current.anchorClientMs) {
+        setMyRoomDisplaySec(Math.max(0, current.remainingSecAtAnchor));
+        return;
+      }
+      const elapsed = Math.floor((Date.now() - current.anchorClientMs) / 1000);
+      const nextRem = Math.max(0, current.remainingSecAtAnchor - elapsed);
+      setMyRoomDisplaySec(nextRem);
+
+      // Requirement 5: When user's session timer reaches 00:00
+      if (nextRem <= 0 && !current.isEnded) {
+        const endedState = {
+          ...current,
+          remainingSecAtAnchor: 0,
+          anchorClientMs: 0,
+          isRunning: false,
+          isEnded: true,
+        };
+        saveUserRoomTimerToLocal(activeRoom.roomCode, endedState);
+        setSessionEndedNotice(true);
+        setStatusBanner("🔔 Study Session শেষ। নতুন Session শুরু করুন।");
+
+        // Automatically save the completed study session & remove user from active room if all done
+        postAction("SAVE_ACTIVITY_RECORD", {
+          studentKey,
+          courseType: selectedCourse,
+          recordType: "session",
+          mode: "group",
+          roomCode: activeRoom.roomCode,
+          subjectId: activeRoom.subjectId,
+          subjectTitle: activeRoom.subjectTitle,
+          lectureId: activeRoom.lectureId,
+          lectureNo: activeRoom.lectureNo,
+          lectureTitle: activeRoom.lectureTitle,
+          topicId: activeRoom.topicId,
+          topicTitle: activeRoom.topicTitle,
+          durationSec: current.durationSec || 2700,
+          dateKey: getTodayDateKey(),
+        }).then((saved) => {
+          if (saved?.record) {
+            setActivityRecords((prev) => [saved.record, ...prev]);
+          }
+        });
+
+        // Remove from running group automatically once session expires
+        postAction("LEAVE_ROOM", {
+          roomCode: activeRoom.roomCode,
+          studentKey,
+        }).then(() => {
+          syncWithBackend("", false);
+        });
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 500);
+    return () => clearInterval(interval);
+  }, [activeRoom, myRoomTimer]);
+
+  // Solo Study Timer Tick Effect (with Session End Notification)
   useEffect(() => {
     const tick = () => {
       if (!soloTimer.isRunning || !soloTimer.startedAtMs) {
@@ -640,10 +665,29 @@ export function GroupStudyEntryCard({
         return;
       }
       const delta = Math.floor((Date.now() - soloTimer.startedAtMs) / 1000);
-      setSoloDisplaySec((soloTimer.accumulatedSec || 0) + Math.max(0, delta));
+      const totalElapsed =
+        (soloTimer.accumulatedSec || 0) + Math.max(0, delta);
+      setSoloDisplaySec(totalElapsed);
+
+      const targetSec = Number(soloTimer.targetDurationSec || 2700);
+      if (targetSec > 0 && totalElapsed >= targetSec && !soloTimer.isEnded) {
+        const finishedSolo = {
+          ...soloTimer,
+          isRunning: false,
+          startedAtMs: 0,
+          accumulatedSec: targetSec,
+          isEnded: true,
+        };
+        setSoloTimer(finishedSolo);
+        localStorage.setItem(
+          STORAGE_KEYS.SOLO_TIMER,
+          JSON.stringify(finishedSolo)
+        );
+        setStatusBanner("🔔 Study Session শেষ। নতুন Session শুরু করুন।");
+      }
     };
     tick();
-    const interval = setInterval(tick, 1000);
+    const interval = setInterval(tick, 500);
     return () => clearInterval(interval);
   }, [soloTimer]);
 
@@ -659,103 +703,218 @@ export function GroupStudyEntryCard({
     [activityRecords]
   );
 
-  const isTopicCompletedFn = (subId, lecNo, topId) =>
+  const isTopicCompletedFn = (subId, lecNo, topTitle) =>
     activityRecords.some(
       (r) =>
         r.recordType === "topic_completion" &&
         r.subjectId === subId &&
         Number(r.lectureNo) === Number(lecNo) &&
-        r.topicId === topId
+        r.topicTitle === (topTitle || "").trim()
     );
 
-  // API Helper
-  const postAction = async (action, payload) => {
-    try {
-      const res = await fetch("/api/group-study", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, payload }),
+  // Instant 0ms User-Specific Pause / Resume Handler (Requirement 1 & 2)
+  const handleToggleMyRoomTimerPause = () => {
+    if (!activeRoom) return;
+    const current = myRoomTimerRef.current;
+
+    if (current.isRunning) {
+      // Instant Pause on this device only
+      const elapsed = current.anchorClientMs
+        ? Math.floor((Date.now() - current.anchorClientMs) / 1000)
+        : 0;
+      const remNow = Math.max(0, current.remainingSecAtAnchor - elapsed);
+      const pausedState = {
+        ...current,
+        remainingSecAtAnchor: remNow,
+        anchorClientMs: 0,
+        isRunning: false,
+      };
+      setMyRoomDisplaySec(remNow);
+      saveUserRoomTimerToLocal(activeRoom.roomCode, pausedState);
+
+      // Optimistically update participant badge in UI
+      setActiveRoom((prev) =>
+        prev
+          ? {
+              ...prev,
+              participants: (prev.participants || []).map((p) =>
+                p.studentKey === studentKey
+                  ? { ...p, isPaused: true, remainingSec: remNow }
+                  : p
+              ),
+            }
+          : prev
+      );
+
+      // Non-blocking background sync
+      postAction("SYNC_USER_TIMER", {
+        roomCode: activeRoom.roomCode,
+        studentKey,
+        isPaused: true,
+        remainingSec: remNow,
       });
-      const data = await res.json();
-      if (data.serverNowMs) updateClockOffset(data.serverNowMs);
-      return data;
-    } catch (e) {
-      return { success: false, error: e.message };
+    } else {
+      // Instant Resume on this device only
+      const baseRem =
+        current.remainingSecAtAnchor > 0
+          ? current.remainingSecAtAnchor
+          : activeRoom.scheduledDurationSec || 2700;
+      const resumedState = {
+        ...current,
+        remainingSecAtAnchor: baseRem,
+        anchorClientMs: Date.now(),
+        isRunning: true,
+        isEnded: false,
+      };
+      setSessionEndedNotice(false);
+      setMyRoomDisplaySec(baseRem);
+      saveUserRoomTimerToLocal(activeRoom.roomCode, resumedState);
+
+      setActiveRoom((prev) =>
+        prev
+          ? {
+              ...prev,
+              participants: (prev.participants || []).map((p) =>
+                p.studentKey === studentKey
+                  ? { ...p, isPaused: false, remainingSec: baseRem }
+                  : p
+              ),
+            }
+          : prev
+      );
+
+      postAction("SYNC_USER_TIMER", {
+        roomCode: activeRoom.roomCode,
+        studentKey,
+        isPaused: false,
+        remainingSec: baseRem,
+      });
     }
   };
 
-  // Room Handlers
+  // Room Creation Handler (Requirement 4: Custom Topic validation)
   const handleCreateRoom = async (e) => {
     e.preventDefault();
+    const cleanTopic = (selection.topicTitle || "").trim();
+    if (!cleanTopic) {
+      alert("⚠️ অনুগ্রহ করে লেকচারের টপিক লিখে নির্বাচন করুন!");
+      return;
+    }
+
+    setIsActionLoading(true);
+    const durationSec = Number(scheduledMinutes || 45) * 60;
     const res = await postAction("CREATE_ROOM", {
       roomName:
-        customRoomName.trim() ||
-        `${selection.subjectTitle} - ${selection.topicTitle}`,
+        customRoomName.trim() || `${selection.subjectTitle} — ${cleanTopic}`,
       courseType: selectedCourse,
       ...selection,
+      topicTitle: cleanTopic,
       hostKey: studentKey,
       hostName: profile.name || "শিক্ষার্থী",
       avatarUrl: profile.avatarUrl || "",
       institution: profile.institution || "",
       isPrivate: isPrivateRoom,
       maxParticipants: Number(maxMembers || 10),
-      scheduledDurationSec: Number(scheduledMinutes || 45) * 60,
+      scheduledDurationSec: durationSec,
     });
+    setIsActionLoading(false);
+
     if (res.success && res.room) {
       setActiveRoom(res.room);
+      initializeOrRestoreUserRoomTimer(res.room);
       setCustomRoomName("");
+      setSessionEndedNotice(false);
       setModalTab("active_room");
-      syncWithBackend(res.room.roomCode);
+      syncWithBackend(res.room.roomCode, false);
     } else {
       alert(res.error || "রুম তৈরি করতে সমস্যা হয়েছে!");
     }
   };
 
+  // Join Room Handler (Requirement 3: Auto-leave previous group if switching)
   const handleJoinRoom = async (codeToJoin) => {
-    if (!codeToJoin || !codeToJoin.trim()) {
+    const cleanCode = (codeToJoin || "").trim().toUpperCase();
+    if (!cleanCode) {
       alert("অনুগ্রহ করে রুমের কোড লিখুন!");
       return;
     }
+
+    if (activeRoom && activeRoom.roomCode === cleanCode) {
+      setModalTab("active_room");
+      setShowRunningGroupsDrawer(false);
+      return;
+    }
+
+    if (
+      activeRoom &&
+      activeRoom.status !== "ended" &&
+      activeRoom.roomCode !== cleanCode
+    ) {
+      const ok = window.confirm(
+        `আপনি বর্তমানে "${activeRoom.roomName}" রুমে যুক্ত আছেন। নতুন গ্রুপে যোগ দিতে আগের রুম থেকে Leave নিতে চান?`
+      );
+      if (!ok) return;
+    }
+
+    setIsActionLoading(true);
     const res = await postAction("JOIN_ROOM", {
-      roomCode: codeToJoin.trim().toUpperCase(),
+      roomCode: cleanCode,
+      previousRoomCode: activeRoom?.roomCode || "",
       studentKey,
       name: profile.name || "শিক্ষার্থী",
       avatarUrl: profile.avatarUrl || "",
       institution: profile.institution || "",
     });
+    setIsActionLoading(false);
+
     if (res.success && res.room) {
       setActiveRoom(res.room);
+      initializeOrRestoreUserRoomTimer(res.room);
       setInviteCodeInput("");
+      setSessionEndedNotice(false);
+      setShowRunningGroupsDrawer(false);
       setModalTab("active_room");
-      syncWithBackend(res.room.roomCode);
+      syncWithBackend(res.room.roomCode, false);
     } else {
       alert(res.error || "রুমে যোগ দেওয়া যায়নি!");
     }
   };
 
-  const handleControlRoomTimer = async (command) => {
-    if (!activeRoom) return;
-    const res = await postAction("CONTROL_ROOM_TIMER", {
-      roomCode: activeRoom.roomCode,
-      command,
-    });
-    if (res.success && res.room) setActiveRoom(res.room);
-  };
-
   const handleLeaveRoom = async () => {
     if (!activeRoom) return;
+    const leavingCode = activeRoom.roomCode;
+    // Instant UI transition
+    setActiveRoom(null);
+    setSessionEndedNotice(false);
+    setModalTab("group_lobby");
+
     await postAction("LEAVE_ROOM", {
-      roomCode: activeRoom.roomCode,
+      roomCode: leavingCode,
       studentKey,
     });
-    setActiveRoom(null);
-    setModalTab("group_lobby");
-    syncWithBackend("");
+    syncWithBackend("", false);
   };
 
-  const handleCompleteRoomSession = async (studiedSeconds) => {
+  const handleCompleteMyRoomSession = async () => {
     if (!activeRoom) return;
-    await handleControlRoomTimer("END");
+    const totalDur = Number(activeRoom.scheduledDurationSec || 2700);
+    const studiedSeconds = Math.max(60, totalDur - myRoomDisplaySec);
+
+    // Instant UI update
+    const endedState = {
+      ...myRoomTimerRef.current,
+      remainingSecAtAnchor: 0,
+      anchorClientMs: 0,
+      isRunning: false,
+      isEnded: true,
+    };
+    saveUserRoomTimerToLocal(activeRoom.roomCode, endedState);
+    setMyRoomDisplaySec(0);
+    setSessionEndedNotice(true);
+    setStatusBanner(
+      "🎉 Study Session শেষ। নতুন Session শুরু করুন। (অগ্রগতি সংরক্ষিত হয়েছে)"
+    );
+
     const res = await postAction("SAVE_ACTIVITY_RECORD", {
       studentKey,
       courseType: selectedCourse,
@@ -773,32 +932,35 @@ export function GroupStudyEntryCard({
       dateKey: getTodayDateKey(),
     });
     if (res.success && res.record) {
-      const next = [res.record, ...activityRecords];
-      setActivityRecords(next);
-      setStatusBanner("🎉 গ্রুপ স্টাডি সেশন সংরক্ষিত হয়েছে!");
-      setTimeout(() => setStatusBanner(""), 3500);
+      setActivityRecords((prev) => [res.record, ...prev]);
     }
   };
 
   const handleSaveSoloSession = async (durationSec) => {
+    const cleanTopic =
+      (selection.topicTitle || "").trim() || selection.lectureTitle || "স্টাডি";
     const res = await postAction("SAVE_ACTIVITY_RECORD", {
       studentKey,
       courseType: selectedCourse,
       recordType: "session",
       mode: "solo",
       ...selection,
+      topicTitle: cleanTopic,
       durationSec,
       dateKey: getTodayDateKey(),
     });
     if (res.success && res.record) {
-      const next = [res.record, ...activityRecords];
-      setActivityRecords(next);
-      setStatusBanner("✅ আপনার আজকের স্টাডি সেশন সংরক্ষিত হয়েছে!");
-      setTimeout(() => setStatusBanner(""), 3500);
+      setActivityRecords((prev) => [res.record, ...prev]);
+      setStatusBanner("✅ আপনার স্টাডি সেশন সফলভাবে সংরক্ষিত হয়েছে!");
+      setTimeout(() => setStatusBanner(""), 4000);
     }
   };
 
   const handleMarkTopicCompleted = async (topicMeta) => {
+    const cleanTopic =
+      (topicMeta.topicTitle || "").trim() ||
+      topicMeta.lectureTitle ||
+      "নির্বাচিত টপিক";
     const payload = {
       studentKey,
       courseType: selectedCourse,
@@ -809,187 +971,47 @@ export function GroupStudyEntryCard({
       lectureId: topicMeta.lectureId || "",
       lectureNo: Number(topicMeta.lectureNo || 1),
       lectureTitle: topicMeta.lectureTitle || "",
-      topicId: topicMeta.topicId,
-      topicTitle: topicMeta.topicTitle,
+      topicId: topicMeta.topicId || `top_${Date.now()}`,
+      topicTitle: cleanTopic,
       durationSec: Number(topicMeta.durationSec || 60),
       dateKey: getTodayDateKey(),
     };
 
+    // Optimistic UI feedback
+    setStatusBanner(`✓ "${cleanTopic}" টপিকটি সম্পন্ন তালিকাভুক্ত হয়েছে!`);
+    setTimeout(() => setStatusBanner(""), 3500);
+
     const res = await postAction("SAVE_ACTIVITY_RECORD", payload);
-    const updatedRecords = res.record
-      ? [
-          res.record,
-          ...activityRecords.filter(
-            (r) =>
-              !(
-                r.recordType === "topic_completion" &&
-                r.subjectId === payload.subjectId &&
-                Number(r.lectureNo) === payload.lectureNo &&
-                r.topicId === payload.topicId
-              )
-          ),
-        ]
-      : activityRecords;
+    if (res.record) {
+      setActivityRecords((prev) => [
+        res.record,
+        ...prev.filter(
+          (r) =>
+            !(
+              r.recordType === "topic_completion" &&
+              r.subjectId === payload.subjectId &&
+              Number(r.lectureNo) === payload.lectureNo &&
+              r.topicTitle === cleanTopic
+            )
+        ),
+      ]);
+    }
 
-    setActivityRecords(updatedRecords);
-
-    // Sync with existing platform lecture progress rules
-    const targetSubObj = subjects.find((s) => s.id === payload.subjectId);
     const targetLecObj = lectures.find(
       (l) =>
         l.subjectId === payload.subjectId &&
         Number(l.lectureNo) === payload.lectureNo
     );
-
     if (targetLecObj && onUpdateLectureProgress) {
-      const allTopicsForLec = deriveTopicsForSubjectAndLecture({
-        subjectObj: targetSubObj,
-        lectureObj: targetLecObj,
-        syllabusItems,
-        selectedCourse,
-      });
-      const completedInLec = allTopicsForLec.filter((t) =>
-        updatedRecords.some(
-          (r) =>
-            r.recordType === "topic_completion" &&
-            r.subjectId === payload.subjectId &&
-            Number(r.lectureNo) === payload.lectureNo &&
-            r.topicId === t.id
-        )
-      );
       const lecKey = targetLecObj._id || targetLecObj.id;
-      const allDone =
-        allTopicsForLec.length > 0 &&
-        completedInLec.length >= allTopicsForLec.length;
-
       onUpdateLectureProgress({
         ...progressMap,
         [lecKey]: {
           ...(progressMap[lecKey] || {}),
-          completed: allDone ? true : Boolean(progressMap[lecKey]?.completed),
-          completedTopicsCount: completedInLec.length,
-          totalTopicsCount: allTopicsForLec.length,
+          completed: true,
         },
       });
     }
-
-    setStatusBanner(`✓ "${topicMeta.topicTitle}" টপিকটি সম্পন্ন তালিকাভুক্ত হয়েছে!`);
-    setTimeout(() => setStatusBanner(""), 3500);
-  };
-
-  // Topic-Wise MCQ Questions Pool from existing examSets
-  const topicQuestions = useMemo(() => {
-    const subId = selection?.subjectId || "bangla";
-    const lecNo = Number(selection?.lectureNo || 1);
-
-    let pool = [];
-    examSets
-      .filter(
-        (s) =>
-          (s.courseType || "bcs") === selectedCourse &&
-          s.subjectId === subId &&
-          Number(s.lectureNo) === lecNo
-      )
-      .forEach((setDoc) => {
-        if (Array.isArray(setDoc.questions)) pool.push(...setDoc.questions);
-      });
-
-    if (pool.length === 0) {
-      examSets
-        .filter(
-          (s) =>
-            (s.courseType || "bcs") === selectedCourse && s.subjectId === subId
-        )
-        .forEach((setDoc) => {
-          if (Array.isArray(setDoc.questions)) pool.push(...setDoc.questions);
-        });
-    }
-
-    if (pool.length === 0) {
-      pool = [
-        {
-          qNo: 1,
-          question: `${selection?.topicTitle || "নির্বাচিত টপিক"} — এই টপিকের মূল ভিত্তি কোনটি?`,
-          options: [
-            "নিয়মিত অনুশীলন ও মূল নিয়ম বিশ্লেষণ",
-            "শুধুমাত্র অনুমান নির্ভর উত্তর",
-            "সিলেবাস বহির্ভূত অধ্যায়",
-            "কোনোটিই নয়",
-          ],
-          correctAnswer: 0,
-          explanation:
-            "অ্যাডমিন প্যানেল থেকে এই লেকচারের Test 1 / Test 2-এ প্রশ্ন যুক্ত করলে সেগুলো স্বয়ংক্রিয়ভাবে এখানে চলে আসবে।",
-        },
-      ];
-    }
-
-    return pool.slice(0, questionCountLimit);
-  }, [selection, examSets, selectedCourse, questionCountLimit]);
-
-  useEffect(() => {
-    if (modalTab === "mcq_exam") {
-      setExamTimeLeftSec(topicQuestions.length * 36);
-      setExamCurrentIdx(0);
-      setExamAnswersMap({});
-      setExamSubmitted(false);
-    }
-  }, [modalTab, questionCountLimit, topicQuestions.length]);
-
-  useEffect(() => {
-    if (modalTab !== "mcq_exam" || examSubmitted || topicQuestions.length === 0)
-      return;
-    const t = setInterval(() => {
-      setExamTimeLeftSec((prev) => {
-        if (prev <= 1) {
-          clearInterval(t);
-          handleFinishTopicExam(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [modalTab, examSubmitted, topicQuestions.length, examAnswersMap]);
-
-  const calculateTopicExamScore = () => {
-    let correct = 0;
-    let wrong = 0;
-    topicQuestions.forEach((q, idx) => {
-      const choice = examAnswersMap[idx];
-      if (choice !== undefined) {
-        if (Number(choice) === Number(q.correctAnswer)) correct += 1;
-        else wrong += 1;
-      }
-    });
-    const score = Math.max(0, +(correct - wrong * 0.5).toFixed(2));
-    const percent =
-      topicQuestions.length > 0
-        ? Math.round((correct / topicQuestions.length) * 100)
-        : 0;
-    return { total: topicQuestions.length, correct, wrong, score, percent };
-  };
-
-  const handleFinishTopicExam = async (auto = false) => {
-    if (!auto && !window.confirm("আপনি কি নিশ্চিতভাবে উত্তরপত্র জমা দিতে চান?"))
-      return;
-    setExamSubmitted(true);
-    const res = calculateTopicExamScore();
-    const saved = await postAction("SAVE_ACTIVITY_RECORD", {
-      studentKey,
-      courseType: selectedCourse,
-      recordType: "mcq_result",
-      mode: activeRoom ? "group" : "solo",
-      ...selection,
-      mcqScore: res.score,
-      mcqTotal: res.total,
-      mcqCorrect: res.correct,
-      mcqWrong: res.wrong,
-      dateKey: getTodayDateKey(),
-    });
-    if (saved.success && saved.record) {
-      setActivityRecords((prev) => [saved.record, ...prev]);
-    }
-    if (onIncrementQuizCount) onIncrementQuizCount();
   };
 
   const completedLecturesCount = lectures.filter(
@@ -999,9 +1021,119 @@ export function GroupStudyEntryCard({
     (completedLecturesCount / Math.max(1, lectures.length)) * 100
   );
 
+  // Reusable Running Groups List Renderer (Requirement 3)
+  const renderRunningGroupsList = () => (
+    <div className="space-y-3">
+      {publicRooms.length === 0 ? (
+        <div className="p-8 rounded-2xl bg-slate-50 border border-dashed text-center text-xs font-bold text-slate-500">
+          এই মুহূর্তে কোনো চলমান গ্রুপ স্টাডি রুম নেই। আপনি নতুন একটি রুম তৈরি
+          করুন!
+        </div>
+      ) : (
+        publicRooms.map((r) => {
+          const isMyCurrentRoom = activeRoom?.roomCode === r.roomCode;
+          const memberCount = r.participants?.length || 0;
+          const maxCap = r.maxParticipants || 10;
+          const isFull = memberCount >= maxCap && !isMyCurrentRoom;
+
+          return (
+            <div
+              key={r.roomCode}
+              className={`p-4 rounded-2xl border-2 transition space-y-3 ${
+                isMyCurrentRoom
+                  ? "bg-purple-50/90 border-[#4c1d95]"
+                  : "bg-white border-slate-200 hover:border-purple-300"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-[#4c1d95] text-[10px] font-black">
+                      {r.subjectTitle} • লেকচার {r.lectureNo}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                      👥 {memberCount}/{maxCap} সদস্য
+                    </span>
+                  </div>
+                  <h4 className="font-black text-sm text-slate-900 mt-1">
+                    টপিক: {r.topicTitle}
+                  </h4>
+                  <p className="text-[11px] font-bold text-slate-500">
+                    রুম কোড: <strong className="text-slate-800">{r.roomCode}</strong>{" "}
+                    • Host: {r.hostName}
+                  </p>
+                </div>
+
+                {isMyCurrentRoom ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalTab("active_room");
+                      setShowRunningGroupsDrawer(false);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-[#2e1065] text-amber-300 text-xs font-black shrink-0 cursor-pointer"
+                  >
+                    আপনার রুম →
+                  </button>
+                ) : isFull ? (
+                  <span className="px-3 py-1.5 rounded-xl bg-slate-200 text-slate-600 text-xs font-black shrink-0">
+                    Slot পূর্ণ
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isActionLoading}
+                    onClick={() => handleJoinRoom(r.roomCode)}
+                    className="premium-btn px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shrink-0 flex items-center gap-1 cursor-pointer shadow-xs"
+                  >
+                    {activeRoom && activeRoom.status !== "ended" ? (
+                      <>
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                        <span>Switch & Join</span>
+                      </>
+                    ) : (
+                      <span>Join করুন</span>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Members Avatar & Name Pills */}
+              {memberCount > 0 && (
+                <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-extrabold text-slate-500 mr-1">
+                    সদস্যবৃন্দ:
+                  </span>
+                  {(r.participants || []).map((m, idx) => (
+                    <span
+                      key={m.studentKey || idx}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-extrabold text-slate-800"
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          m.isPaused ? "bg-amber-500" : "bg-emerald-500"
+                        }`}
+                      />
+                      <span>{m.name}</span>
+                      {m.isHost && (
+                        <span className="text-[9px] text-purple-700 font-black">
+                          (Host)
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+
   return (
     <>
-      {/* 1. DASHBOARD SIDEBAR ENTRY CARD (Below Profile Card) */}
+      {/* 1. DASHBOARD SIDEBAR ENTRY CARD (Requirement 7: Only Group Study & Solo Study + আজকের স্টাডি) */}
       <div
         onClick={() => setIsModalOpen(true)}
         className="neon-border-card rounded-3xl bg-gradient-to-br from-[#f5f3ff] via-white to-[#fdf4ff] p-5 border border-purple-200 shadow-xs cursor-pointer space-y-3.5"
@@ -1021,12 +1153,18 @@ export function GroupStudyEntryCard({
           </div>
         </div>
 
-        <div className="space-y-1 text-xs font-bold text-slate-700">
+        {/* Requirement 7: Only Group Study and Solo Study badges + Today's Study */}
+        <div className="space-y-2 text-xs font-bold text-slate-700">
           <div className="flex items-center gap-2">
-            <Clock className="w-3.5 h-3.5 text-[#4c1d95] shrink-0" />
-            <span>সিঙ্কড টাইমার, একাকী স্টাডি ও টপিক MCQ</span>
+            <span className="px-3 py-1 rounded-xl bg-purple-100 text-[#2e1065] font-black text-xs flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-[#4c1d95]" /> Group Study
+            </span>
+            <span className="px-3 py-1 rounded-xl bg-indigo-50 text-indigo-950 border border-indigo-200 font-black text-xs flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-indigo-700" /> Solo Study
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2 pt-0.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span>আজকের স্টাডি: {formatDurationBangla(stats.todayStudySec)}</span>
           </div>
@@ -1047,7 +1185,7 @@ export function GroupStudyEntryCard({
       {/* 2. RESPONSIVE MODAL OVERLAY */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-2.5 sm:p-5">
-          <div className="bg-[#f4f6fb] max-w-5xl w-full max-h-[92vh] rounded-3xl overflow-hidden shadow-2xl border-2 border-[#2e1065] flex flex-col">
+          <div className="bg-[#f4f6fb] max-w-5xl w-full max-h-[92vh] rounded-3xl overflow-hidden shadow-2xl border-2 border-[#2e1065] flex flex-col relative">
             {/* MODAL HEADER */}
             <div className="bg-gradient-to-r from-[#090d24] via-[#2e1065] to-[#4c1d95] text-white px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3">
@@ -1056,10 +1194,10 @@ export function GroupStudyEntryCard({
                 </div>
                 <div>
                   <h2 className="font-black text-base sm:text-lg leading-tight">
-                    Group Study & Personal Study Hub
+                    Group Study & Solo Study Hub
                   </h2>
                   <p className="text-[11px] sm:text-xs text-purple-200 font-bold">
-                    একসাথে পড়ি, একসাথে এগিয়ে যাই • সকল অগ্রগতি স্বয়ংক্রিয়ভাবে সংরক্ষিত হয়
+                    একসাথে পড়ি, একসাথে এগিয়ে যাই • প্রত্যেকের টাইমার নিজ ডিভাইসে স্বাধীনভাবে নিয়ন্ত্রিত
                   </p>
                 </div>
               </div>
@@ -1067,8 +1205,9 @@ export function GroupStudyEntryCard({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => syncWithBackend()}
+                  onClick={() => syncWithBackend(activeRoom?.roomCode || "", true)}
                   className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+                  title="রিফ্রেশ করুন"
                 >
                   <RefreshCw
                     className={`w-4 h-4 ${loadingSync ? "animate-spin" : ""}`}
@@ -1084,73 +1223,113 @@ export function GroupStudyEntryCard({
               </div>
             </div>
 
-            {/* MODAL NAVIGATION TABS */}
-            <div className="bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center gap-2 overflow-x-auto py-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={() =>
-                  setModalTab(
-                    activeRoom && activeRoom.status !== "ended"
-                      ? "active_room"
-                      : "group_lobby"
-                  )
-                }
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  modalTab === "group_lobby" || modalTab === "active_room"
-                    ? "bg-[#2e1065] text-amber-300"
-                    : "bg-slate-100 text-slate-700"
-                }`}
-              >
-                <Users className="w-4 h-4" />
-                <span>
-                  A. Group Study{" "}
-                  {activeRoom && activeRoom.status !== "ended" ? "(Live)" : ""}
-                </span>
-              </button>
+            {/* MODAL NAVIGATION BAR (Requirement 3 & 6: Removed Topic MCQ, Added "চলমান Group গুলো" on top right next to "আপনার অগ্রগতি") */}
+            <div className="bg-white border-b border-slate-200 px-4 sm:px-6 flex flex-wrap items-center justify-between gap-2 py-2.5 shrink-0">
+              <div className="flex items-center gap-2 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRunningGroupsDrawer(false);
+                    setModalTab(
+                      activeRoom && activeRoom.status !== "ended"
+                        ? "active_room"
+                        : "group_lobby"
+                    );
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    modalTab === "group_lobby" || modalTab === "active_room"
+                      ? "bg-[#2e1065] text-amber-300"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>
+                    Group Study{" "}
+                    {activeRoom && activeRoom.status !== "ended" ? "(Live)" : ""}
+                  </span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setModalTab("solo_study")}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  modalTab === "solo_study"
-                    ? "bg-[#2e1065] text-amber-300"
-                    : "bg-slate-100 text-slate-700"
-                }`}
-              >
-                <User className="w-4 h-4" />
-                <span>B. Solo Study (একাকী স্টাডি)</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRunningGroupsDrawer(false);
+                    setModalTab("solo_study");
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    modalTab === "solo_study"
+                      ? "bg-[#2e1065] text-amber-300"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  <User className="w-4 h-4" />
+                  <span>Solo Study</span>
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setModalTab("mcq_exam")}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  modalTab === "mcq_exam"
-                    ? "bg-[#2e1065] text-amber-300"
-                    : "bg-slate-100 text-slate-700"
-                }`}
-              >
-                <HelpCircle className="w-4 h-4" />
-                <span>টপিক MCQ পরীক্ষা</span>
-              </button>
+              {/* Top-Right Section: "আপনার অগ্রগতি" + "চলমান Group গুলো" (Requirement 3) */}
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRunningGroupsDrawer(false);
+                    setModalTab("progress");
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    modalTab === "progress" && !showRunningGroupsDrawer
+                      ? "bg-[#2e1065] text-amber-300"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>আপনার অগ্রগতি ({stats.completions.length})</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setModalTab("progress")}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                  modalTab === "progress"
-                    ? "bg-[#2e1065] text-amber-300"
-                    : "bg-slate-100 text-slate-700"
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                <span>আপনার অগ্রগতি ({stats.completions.length})</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    syncWithBackend(activeRoom?.roomCode || "", false);
+                    setShowRunningGroupsDrawer((prev) => !prev);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-1.5 shrink-0 cursor-pointer border transition ${
+                    showRunningGroupsDrawer
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                      : "bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100"
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span>চলমান Group গুলো ({publicRooms.length})</span>
+                </button>
+              </div>
             </div>
 
             {statusBanner && (
-              <div className="bg-emerald-600 text-white px-4 py-2 text-xs sm:text-sm font-black text-center shrink-0">
-                {statusBanner}
+              <div className="bg-emerald-600 text-white px-4 py-2.5 text-xs sm:text-sm font-black text-center shrink-0 flex items-center justify-center gap-2">
+                <BellRing className="w-4 h-4 shrink-0" />
+                <span>{statusBanner}</span>
+              </div>
+            )}
+
+            {/* SLIDE-OVER RIGHT DRAWER FOR "চলমান Group গুলো" (Requirement 3) */}
+            {showRunningGroupsDrawer && (
+              <div className="absolute right-0 top-[112px] bottom-0 w-full sm:w-[420px] bg-white border-l-2 border-[#2e1065] shadow-2xl z-30 flex flex-col animate-in slide-in-from-right duration-200">
+                <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-400" />
+                    <h3 className="font-black text-sm">
+                      চলমান Group গুলো ({publicRooms.length}টি সক্রিয়)
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowRunningGroupsDrawer(false)}
+                    className="w-7 h-7 rounded-full bg-white/15 text-xs font-black flex items-center justify-center cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="p-4 overflow-y-auto flex-1">
+                  {renderRunningGroupsList()}
+                </div>
               </div>
             )}
 
@@ -1181,13 +1360,13 @@ export function GroupStudyEntryCard({
                             : "text-slate-700"
                         }`}
                       >
-                        🔑 কোড দিয়ে যোগ দিন
+                        🔑 কোড দিয়ে যোগ দিন
                       </button>
                     </div>
 
                     {roomSubTab === "create" ? (
                       <form onSubmit={handleCreateRoom} className="space-y-4">
-                        <CascadingTopicSelector
+                        <SubjectLectureCustomTopicSelector
                           subjects={subjects}
                           lectures={lectures}
                           syllabusItems={syllabusItems}
@@ -1207,13 +1386,15 @@ export function GroupStudyEntryCard({
                               onChange={(e) =>
                                 setCustomRoomName(e.target.value)
                               }
-                              placeholder={`${selection.subjectTitle} - ${selection.topicTitle}`}
+                              placeholder={`${selection.subjectTitle} — ${
+                                selection.topicTitle || "স্টাডি রুম"
+                              }`}
                               className="w-full p-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold"
                             />
                           </div>
                           <div>
                             <label className="text-xs font-extrabold text-slate-700 block mb-1">
-                              স্টাডি সময়
+                              স্টাডি সেশনের সময়
                             </label>
                             <select
                               value={scheduledMinutes}
@@ -1226,6 +1407,7 @@ export function GroupStudyEntryCard({
                               <option value={45}>৪৫ মিনিট</option>
                               <option value={60}>১ ঘণ্টা</option>
                               <option value={90}>১ ঘণ্টা ৩০ মিনিট</option>
+                              <option value={120}>২ ঘণ্টা</option>
                             </select>
                           </div>
                         </div>
@@ -1245,7 +1427,7 @@ export function GroupStudyEntryCard({
                             ) : (
                               <Unlock className="w-4 h-4 text-emerald-600" />
                             )}
-                            <span>Private Room (শুধু আমন্ত্রণে)</span>
+                            <span>Private Room (শুধু কোড দিয়ে যোগ দেওয়া যাবে)</span>
                           </label>
 
                           <div className="flex items-center gap-2 text-xs font-extrabold">
@@ -1266,15 +1448,21 @@ export function GroupStudyEntryCard({
 
                         <button
                           type="submit"
-                          className="premium-btn w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#3b0764] to-[#4c1d95] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                          disabled={isActionLoading}
+                          className="premium-btn w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#3b0764] to-[#4c1d95] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-60"
                         >
-                          <Plus className="w-4 h-4" /> রুম তৈরি করুন
+                          <Plus className="w-4 h-4" />
+                          <span>
+                            {isActionLoading
+                              ? "রুম তৈরি হচ্ছে..."
+                              : "রুম তৈরি করুন ও স্টাডি শুরু করুন"}
+                          </span>
                         </button>
                       </form>
                     ) : (
                       <div className="space-y-4 py-2">
                         <label className="text-xs font-extrabold text-slate-700 block">
-                          রুমের আমন্ত্রণ কোড (Invitation Code) লিখুন
+                          রুমের আমন্ত্রণ কোড (Study Code) লিখুন
                         </label>
                         <input
                           type="text"
@@ -1287,63 +1475,34 @@ export function GroupStudyEntryCard({
                         />
                         <button
                           type="button"
+                          disabled={isActionLoading}
                           onClick={() => handleJoinRoom(inviteCodeInput)}
-                          className="premium-btn w-full py-3.5 rounded-2xl bg-[#2e1065] text-amber-300 font-black text-sm cursor-pointer"
+                          className="premium-btn w-full py-3.5 rounded-2xl bg-[#2e1065] text-amber-300 font-black text-sm cursor-pointer disabled:opacity-60"
                         >
-                          রুমে যোগ দিন →
+                          {isActionLoading ? "যুক্ত হচ্ছে..." : "রুমে যোগ দিন →"}
                         </button>
                       </div>
                     )}
                   </div>
 
-                  {/* PUBLIC ROOMS LIST */}
+                  {/* RUNNING PUBLIC ROOMS LIST */}
                   <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200 p-5 space-y-3.5">
                     <div className="flex items-center justify-between border-b pb-3">
                       <h3 className="font-black text-sm sm:text-base text-slate-900">
-                        জনপ্রিয় গ্রুপ স্টাডি রুম ({publicRooms.length})
+                        চলমান Group গুলো ({publicRooms.length})
                       </h3>
                       <span className="text-[11px] font-extrabold text-emerald-600">
-                        ● Live
+                        ● Live Running
                       </span>
                     </div>
-
-                    {publicRooms.length === 0 ? (
-                      <div className="p-8 rounded-2xl bg-slate-50 border border-dashed text-center text-xs font-bold text-slate-500">
-                        এই মুহূর্তে কোনো পাবলিক রুম চালু নেই। বাম পাশ থেকে নতুন রুম তৈরি করুন!
-                      </div>
-                    ) : (
-                      <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
-                        {publicRooms.map((r) => (
-                          <div
-                            key={r.roomCode}
-                            className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3"
-                          >
-                            <div className="min-w-0">
-                              <h4 className="font-black text-xs sm:text-sm text-slate-900 truncate">
-                                {r.subjectTitle} - {r.topicTitle}
-                              </h4>
-                              <p className="text-[11px] font-bold text-slate-500">
-                                Host: {r.hostName} • 👥{" "}
-                                {r.participants?.length || 1}/
-                                {r.maxParticipants}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleJoinRoom(r.roomCode)}
-                              className="px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-black shrink-0 cursor-pointer"
-                            >
-                              Join
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <div className="max-h-[420px] overflow-y-auto pr-1">
+                      {renderRunningGroupsList()}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* TAB A2: ACTIVE GROUP STUDY ROOM */}
+              {/* TAB A2: ACTIVE GROUP STUDY ROOM (With Independent Device Timer & Session End Notice) */}
               {modalTab === "active_room" && activeRoom && (
                 <div className="rounded-3xl bg-gradient-to-br from-[#16113a] via-[#1f164d] to-[#2e1065] text-white p-5 sm:p-6 shadow-xl space-y-5">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 pb-4">
@@ -1359,109 +1518,182 @@ export function GroupStudyEntryCard({
                             setCopiedCode(true);
                             setTimeout(() => setCopiedCode(false), 2000);
                           }}
-                          className="px-2.5 py-0.5 rounded-full bg-white/10 border border-amber-300/40 text-amber-300 text-[11px] font-black flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow"
                         >
-                          <span>কোড: {activeRoom.roomCode}</span>
+                          <span>Study Code: {activeRoom.roomCode}</span>
                           {copiedCode ? (
-                            <Check className="w-3 h-3" />
+                            <Check className="w-3.5 h-3.5" />
                           ) : (
-                            <Copy className="w-3 h-3" />
+                            <Copy className="w-3.5 h-3.5" />
                           )}
                         </button>
                       </div>
-                      <p className="text-xs text-purple-200 font-bold mt-0.5">
+                      <p className="text-xs text-purple-200 font-bold mt-1">
                         Host: {activeRoom.hostName} • 👥{" "}
                         {activeRoom.participants?.length || 1}/
-                        {activeRoom.maxParticipants} সদস্য
+                        {activeRoom.maxParticipants} সদস্য যুক্ত আছেন
                       </p>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleLeaveRoom}
-                      className="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer"
                     >
-                      <LogOut className="w-4 h-4" /> Leave
+                      <LogOut className="w-4 h-4" /> Leave Room
                     </button>
                   </div>
 
+                  {/* Requirement 5: Session End Notification Banner */}
+                  {sessionEndedNotice && (
+                    <div className="p-5 rounded-2xl bg-amber-400 text-slate-950 font-black flex flex-wrap items-center justify-between gap-3 shadow-lg">
+                      <div className="flex items-center gap-2.5 text-sm sm:text-base">
+                        <BellRing className="w-6 h-6 text-rose-700 animate-bounce shrink-0" />
+                        <span>Study Session শেষ। নতুন Session শুরু করুন।</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const dur = Number(
+                              activeRoom.scheduledDurationSec || 2700
+                            );
+                            const restarted = {
+                              roomCode: activeRoom.roomCode,
+                              durationSec: dur,
+                              remainingSecAtAnchor: dur,
+                              anchorClientMs: Date.now(),
+                              isRunning: true,
+                              isEnded: false,
+                            };
+                            setSessionEndedNotice(false);
+                            setMyRoomDisplaySec(dur);
+                            saveUserRoomTimerToLocal(
+                              activeRoom.roomCode,
+                              restarted
+                            );
+                          }}
+                          className="px-4 py-2 rounded-xl bg-[#2e1065] text-white text-xs font-black cursor-pointer"
+                        >
+                          🔄 একই রুমে নতুন সেশন শুরু করুন
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveRoom(null);
+                            setSessionEndedNotice(false);
+                            setModalTab("group_lobby");
+                          }}
+                          className="px-4 py-2 rounded-xl bg-white text-slate-900 text-xs font-black cursor-pointer"
+                        >
+                          + নতুন রুম তৈরি করুন
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                     <div className="lg:col-span-8 space-y-4">
+                      {/* Participants Bar with Individual Studying/Paused Status */}
                       <div className="flex items-center gap-3 overflow-x-auto py-1">
-                        {(activeRoom.participants || []).map((p, idx) => (
-                          <div
-                            key={p.studentKey || idx}
-                            className="flex flex-col items-center shrink-0 min-w-[58px]"
-                          >
-                            <div className="w-11 h-11 rounded-full border-2 border-amber-400 bg-purple-800 flex items-center justify-center font-black text-xs overflow-hidden">
-                              {p.avatarUrl ? (
-                                <img
-                                  src={p.avatarUrl}
-                                  alt={p.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <span>{(p.name || "S").slice(0, 2)}</span>
-                              )}
+                        {(activeRoom.participants || []).map((p, idx) => {
+                          const isMe = p.studentKey === studentKey;
+                          const pausedStatus = isMe
+                            ? !myRoomTimer.isRunning
+                            : p.isPaused;
+                          return (
+                            <div
+                              key={p.studentKey || idx}
+                              className="flex flex-col items-center shrink-0 min-w-[72px] p-2 rounded-2xl bg-white/5 border border-white/10"
+                            >
+                              <div className="relative w-11 h-11 rounded-full border-2 border-amber-400 bg-purple-800 flex items-center justify-center font-black text-xs overflow-hidden">
+                                {p.avatarUrl ? (
+                                  <img
+                                    src={p.avatarUrl}
+                                    alt={p.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span>{(p.name || "S").slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <span className="text-[11px] font-extrabold mt-1 truncate max-w-[74px]">
+                                {p.name?.split(" ")[0]} {isMe ? "(আপনি)" : ""}
+                              </span>
+                              <span
+                                className={`text-[9px] font-black px-1.5 py-0.2 rounded-full mt-0.5 ${
+                                  pausedStatus
+                                    ? "bg-amber-400/20 text-amber-300"
+                                    : "bg-emerald-400/20 text-emerald-300"
+                                }`}
+                              >
+                                {pausedStatus ? "⏸ বিরতিতে" : "🟢 পড়ছেন"}
+                              </span>
                             </div>
-                            <span className="text-[11px] font-extrabold mt-1 truncate max-w-[64px]">
-                              {p.name?.split(" ")[0]}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
-                      <div className="rounded-3xl bg-white text-slate-900 p-6 text-center space-y-4">
-                        <div className="text-4xl sm:text-5xl font-black text-[#1e1b4b] font-mono">
-                          {formatDigitalClock(liveRoomRemainingSec)}
+                      {/* Independent Device Timer Card (Requirement 1 & 2) */}
+                      <div className="rounded-3xl bg-white text-slate-900 p-6 text-center space-y-4 shadow-md">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-[#4c1d95] text-xs font-black">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>
+                            আপনার ব্যক্তিগত স্টাডি টাইমার (অন্যদের টাইমার প্রভাবিত হবে না)
+                          </span>
                         </div>
+
+                        <div className="text-4xl sm:text-6xl font-black text-[#1e1b4b] font-mono tracking-tight">
+                          {formatDigitalClock(myRoomDisplaySec)}
+                        </div>
+
                         <div className="text-xs font-extrabold text-purple-800">
-                          {activeRoom.status === "running"
-                            ? "🟢 স্টাডি সেশন চলছে"
-                            : "⏸ স্টাডি সেশন বিরতিতে বা অপেক্ষায়"}
+                          {sessionEndedNotice
+                            ? "🔔 Study Session শেষ। নতুন Session শুরু করুন।"
+                            : myRoomTimer.isRunning
+                            ? "🟢 আপনার স্টাডি সেশন চলছে..."
+                            : "⏸ আপনার টাইমার বিরতিতে (Paused) আছে"}
                         </div>
-                        <div className="flex flex-wrap justify-center gap-3">
-                          {!activeRoom.timerState?.isRunning ? (
-                            <button
-                              type="button"
-                              onClick={() => handleControlRoomTimer("START")}
-                              className="px-6 py-3 rounded-2xl bg-[#4c1d95] text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
-                            >
-                              <Play className="w-4 h-4 fill-current" /> Start /
-                              Resume
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleControlRoomTimer("PAUSE")}
-                              className="px-6 py-3 rounded-2xl bg-purple-100 text-[#2e1065] font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
-                            >
-                              <Pause className="w-4 h-4" /> Pause
-                            </button>
-                          )}
+
+                        <div className="flex flex-wrap justify-center gap-3 pt-1">
                           <button
                             type="button"
-                            onClick={() =>
-                              handleCompleteRoomSession(
-                                Math.max(
-                                  60,
-                                  (activeRoom.scheduledDurationSec || 2700) -
-                                    liveRoomRemainingSec
-                                )
-                              )
-                            }
-                            className="px-6 py-3 rounded-2xl bg-rose-600 text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
+                            onClick={handleToggleMyRoomTimerPause}
+                            className={`premium-btn px-7 py-3.5 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer shadow-md ${
+                              !myRoomTimer.isRunning
+                                ? "bg-[#4c1d95] text-white"
+                                : "bg-amber-400 text-slate-950"
+                            }`}
                           >
-                            <Square className="w-4 h-4 fill-current" /> End
+                            {!myRoomTimer.isRunning ? (
+                              <>
+                                <Play className="w-4 h-4 fill-current" />
+                                <span>Resume (পড়া চালিয়ে যান)</span>
+                              </>
+                            ) : (
+                              <>
+                                <Pause className="w-4 h-4" />
+                                <span>Pause (বিরতি নিন)</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleCompleteMyRoomSession}
+                            className="premium-btn px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer shadow-md"
+                          >
+                            <Square className="w-4 h-4 fill-current" />
+                            <span>সেশন শেষ ও সেভ করুন</span>
                           </button>
                         </div>
                       </div>
                     </div>
 
                     <div className="lg:col-span-4 rounded-2xl bg-white/10 border border-white/15 p-4 flex flex-col justify-between space-y-4">
-                      <div className="space-y-2 text-xs">
+                      <div className="space-y-2.5 text-xs">
                         <div className="font-black text-amber-300 text-sm border-b border-white/10 pb-2">
-                          সেশন ডিটেইলস
+                          📌 স্টাডি রুমের টপিক ও তথ্য
                         </div>
                         <div>
                           বিষয়: <strong>{activeRoom.subjectTitle}</strong>
@@ -1473,9 +1705,9 @@ export function GroupStudyEntryCard({
                             {activeRoom.lectureTitle}
                           </strong>
                         </div>
-                        <div>
-                          টপিক:{" "}
-                          <strong className="text-amber-300">
+                        <div className="p-2.5 rounded-xl bg-white/10 border border-amber-300/30">
+                          নির্ধারিত টপিক:{" "}
+                          <strong className="text-amber-300 block text-sm mt-0.5">
                             {activeRoom.topicTitle}
                           </strong>
                         </div>
@@ -1487,31 +1719,23 @@ export function GroupStudyEntryCard({
                           onClick={() =>
                             handleMarkTopicCompleted({
                               ...activeRoom,
-                              durationSec: 1800,
+                              durationSec:
+                                (activeRoom.scheduledDurationSec || 2700) -
+                                myRoomDisplaySec,
                             })
                           }
-                          className="w-full py-2.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="premium-btn w-full py-3 rounded-xl bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow"
                         >
-                          <CheckCircle2 className="w-4 h-4" /> Mark as Completed
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelection((prev) => ({
-                              ...prev,
-                              subjectId: activeRoom.subjectId,
-                              subjectTitle: activeRoom.subjectTitle,
-                              lectureNo: activeRoom.lectureNo,
-                              lectureTitle: activeRoom.lectureTitle,
-                              topicId: activeRoom.topicId,
-                              topicTitle: activeRoom.topicTitle,
-                            }));
-                            setModalTab("mcq_exam");
-                          }}
-                          className="w-full py-2.5 rounded-xl bg-white/15 text-white font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <HelpCircle className="w-4 h-4 text-amber-300" /> MCQ
-                          পরীক্ষা দিন
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>
+                            {isTopicCompletedFn(
+                              activeRoom.subjectId,
+                              activeRoom.lectureNo,
+                              activeRoom.topicTitle
+                            )
+                              ? "✓ টপিকটি সম্পন্ন হয়েছে"
+                              : "টপিকটি সম্পন্ন হিসেবে চিহ্নিত করুন"}
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -1524,9 +1748,9 @@ export function GroupStudyEntryCard({
                 <div className="space-y-5">
                   <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-3">
                     <span className="text-xs font-black text-[#4c1d95] uppercase">
-                      🎯 একাকী পড়াশোনার বিষয় ও টপিক নির্বাচন
+                      🎯 একাকী পড়াশোনার বিষয়, লেকচার ও কাস্টম টপিক নির্বাচন
                     </span>
-                    <CascadingTopicSelector
+                    <SubjectLectureCustomTopicSelector
                       subjects={subjects}
                       lectures={lectures}
                       syllabusItems={syllabusItems}
@@ -1537,6 +1761,31 @@ export function GroupStudyEntryCard({
                   </div>
 
                   <div className="bg-gradient-to-b from-purple-50/90 to-white p-6 rounded-3xl border-2 border-purple-200 space-y-5">
+                    {soloTimer.isEnded && (
+                      <div className="p-4 rounded-2xl bg-amber-400 text-slate-950 font-black text-sm flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <BellRing className="w-5 h-5 text-rose-700" />
+                          <span>Study Session শেষ। নতুন Session শুরু করুন।</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateSoloTimerState({
+                              ...soloTimer,
+                              isRunning: true,
+                              startedAtMs: Date.now(),
+                              accumulatedSec: 0,
+                              isEnded: false,
+                            });
+                            setSoloDisplaySec(0);
+                          }}
+                          className="px-4 py-1.5 rounded-xl bg-[#2e1065] text-white text-xs font-black cursor-pointer"
+                        >
+                          নতুন সেশন শুরু করুন
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 rounded-2xl border">
                       <div>
                         <span className="text-xs font-extrabold text-purple-800">
@@ -1548,7 +1797,8 @@ export function GroupStudyEntryCard({
                           {formatDigitalClock(soloDisplaySec)}
                         </div>
                         <p className="text-xs font-bold text-slate-600 mt-1">
-                          {selection.subjectTitle} • {selection.topicTitle}
+                          {selection.subjectTitle} • লেকচার {selection.lectureNo}{" "}
+                          • {selection.topicTitle || "কাস্টম টপিক"}
                         </p>
                       </div>
 
@@ -1560,13 +1810,18 @@ export function GroupStudyEntryCard({
                               updateSoloTimerState({
                                 ...soloTimer,
                                 isRunning: true,
+                                isEnded: false,
                                 startedAtMs: Date.now(),
                               })
                             }
-                            className="px-6 py-3.5 rounded-2xl bg-[#4c1d95] text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
+                            className="premium-btn px-6 py-3.5 rounded-2xl bg-[#4c1d95] text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer shadow-md"
                           >
-                            <Play className="w-4 h-4 fill-current" /> নতুন সেশন
-                            শুরু করুন
+                            <Play className="w-4 h-4 fill-current" />
+                            <span>
+                              {soloDisplaySec > 0
+                                ? "Resume করুন"
+                                : "নতুন সেশন শুরু করুন"}
+                            </span>
                           </button>
                         ) : (
                           <button
@@ -1575,16 +1830,18 @@ export function GroupStudyEntryCard({
                               const delta = Math.floor(
                                 (Date.now() - soloTimer.startedAtMs) / 1000
                               );
+                              const nextAcc =
+                                (soloTimer.accumulatedSec || 0) +
+                                Math.max(0, delta);
+                              setSoloDisplaySec(nextAcc);
                               updateSoloTimerState({
                                 ...soloTimer,
                                 isRunning: false,
                                 startedAtMs: 0,
-                                accumulatedSec:
-                                  (soloTimer.accumulatedSec || 0) +
-                                  Math.max(0, delta),
+                                accumulatedSec: nextAcc,
                               });
                             }}
-                            className="px-6 py-3.5 rounded-2xl bg-amber-400 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
+                            className="premium-btn px-6 py-3.5 rounded-2xl bg-amber-400 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer shadow-md"
                           >
                             <Pause className="w-4 h-4" /> Pause
                           </button>
@@ -1600,11 +1857,12 @@ export function GroupStudyEntryCard({
                                 isRunning: false,
                                 startedAtMs: 0,
                                 accumulatedSec: 0,
+                                isEnded: true,
                               });
                               setSoloDisplaySec(0);
                               await handleSaveSoloSession(finalSec);
                             }}
-                            className="px-5 py-3.5 rounded-2xl bg-emerald-600 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
+                            className="premium-btn px-5 py-3.5 rounded-2xl bg-emerald-600 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer shadow-md"
                           >
                             <CheckCircle2 className="w-4 h-4" /> Finish & Save
                           </button>
@@ -1613,36 +1871,27 @@ export function GroupStudyEntryCard({
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleMarkTopicCompleted({
-                              ...selection,
-                              durationSec: Math.max(soloDisplaySec, 60),
-                            })
-                          }
-                          className="px-4 py-2.5 rounded-xl bg-[#2e1065] text-amber-300 text-xs font-black flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>
-                            {isTopicCompletedFn(
-                              selection.subjectId,
-                              selection.lectureNo,
-                              selection.topicId
-                            )
-                              ? "✓ টপিক সম্পন্ন হয়েছে"
-                              : "Mark as Completed"}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setModalTab("mcq_exam")}
-                          className="px-4 py-2.5 rounded-xl bg-purple-100 text-[#2e1065] text-xs font-black flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <HelpCircle className="w-4 h-4" /> এই টপিকের MCQ দিন
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleMarkTopicCompleted({
+                            ...selection,
+                            durationSec: Math.max(soloDisplaySec, 60),
+                          })
+                        }
+                        className="px-4 py-2.5 rounded-xl bg-[#2e1065] text-amber-300 text-xs font-black flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>
+                          {isTopicCompletedFn(
+                            selection.subjectId,
+                            selection.lectureNo,
+                            selection.topicTitle
+                          )
+                            ? "✓ টপিক সম্পন্ন হয়েছে"
+                            : "Mark as Completed"}
+                        </span>
+                      </button>
 
                       <button
                         type="button"
@@ -1664,9 +1913,10 @@ export function GroupStudyEntryCard({
                               isRunning: false,
                               startedAtMs: 0,
                               accumulatedSec: 0,
+                              isEnded: false,
                             });
                             setSoloDisplaySec(0);
-                            syncWithBackend();
+                            syncWithBackend(activeRoom?.roomCode || "", true);
                           }
                         }}
                         className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-extrabold flex items-center gap-1 cursor-pointer"
@@ -1714,123 +1964,7 @@ export function GroupStudyEntryCard({
                 </div>
               )}
 
-              {/* TAB C: TOPIC-WISE MCQ EXAM */}
-              {modalTab === "mcq_exam" && (
-                <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 space-y-5">
-                  {examSubmitted ? (
-                    (() => {
-                      const res = calculateTopicExamScore();
-                      return (
-                        <div className="text-center space-y-4">
-                          <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-                          <h3 className="text-2xl font-black">
-                            অভিনন্দন! আপনার স্কোর: {res.percent}% ({res.correct}/
-                            {res.total})
-                          </h3>
-                          <p className="text-xs font-bold text-slate-600">
-                            বিষয়: {selection.subjectTitle} • টপিক:{" "}
-                            {selection.topicTitle}
-                          </p>
-                          <div className="flex justify-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setExamSubmitted(false)}
-                              className="px-5 py-2.5 rounded-xl bg-slate-100 text-xs font-black cursor-pointer"
-                            >
-                              আবার পরীক্ষা দিন
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setModalTab("progress")}
-                              className="px-5 py-2.5 rounded-xl bg-[#4c1d95] text-white text-xs font-black cursor-pointer"
-                            >
-                              অগ্রগতি দেখুন →
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })()
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm font-black text-[#4c1d95]">
-                          প্রশ্ন {examCurrentIdx + 1} / {topicQuestions.length}
-                        </span>
-                        <span className="px-3 py-1 rounded-full bg-purple-100 text-[#4c1d95] font-black text-xs">
-                          ⏱ {formatDigitalClock(examTimeLeftSec)}
-                        </span>
-                      </div>
-
-                      {topicQuestions[examCurrentIdx] && (
-                        <div className="space-y-3">
-                          <h3 className="text-base sm:text-lg font-black">
-                            {topicQuestions[examCurrentIdx].question}
-                          </h3>
-                          <div className="space-y-2">
-                            {(
-                              topicQuestions[examCurrentIdx].options || []
-                            ).map((opt, oIdx) => (
-                              <button
-                                key={oIdx}
-                                type="button"
-                                onClick={() =>
-                                  setExamAnswersMap({
-                                    ...examAnswersMap,
-                                    [examCurrentIdx]: oIdx,
-                                  })
-                                }
-                                className={`w-full p-3.5 rounded-2xl border-2 text-left text-xs sm:text-sm font-extrabold cursor-pointer ${
-                                  examAnswersMap[examCurrentIdx] === oIdx
-                                    ? "bg-purple-50 border-[#4c1d95] text-[#2e1065]"
-                                    : "bg-white border-slate-200"
-                                }`}
-                              >
-                                {String.fromCharCode(65 + oIdx)}. {opt}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex justify-between pt-3 border-t">
-                        <button
-                          type="button"
-                          disabled={examCurrentIdx === 0}
-                          onClick={() =>
-                            setExamCurrentIdx((p) => Math.max(0, p - 1))
-                          }
-                          className="px-4 py-2 rounded-xl border text-xs font-black disabled:opacity-40 cursor-pointer"
-                        >
-                          পূর্ববর্তী
-                        </button>
-                        {examCurrentIdx < topicQuestions.length - 1 ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExamCurrentIdx((p) =>
-                                Math.min(topicQuestions.length - 1, p + 1)
-                              )
-                            }
-                            className="px-5 py-2 rounded-xl bg-[#4c1d95] text-white text-xs font-black cursor-pointer"
-                          >
-                            পরবর্তী →
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleFinishTopicExam(false)}
-                            className="px-5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black cursor-pointer"
-                          >
-                            জমা দিন
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* TAB D: PROGRESS DASHBOARD */}
+              {/* TAB C: PROGRESS DASHBOARD */}
               {modalTab === "progress" && (
                 <div className="space-y-5">
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -1878,13 +2012,14 @@ export function GroupStudyEntryCard({
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {stats.completions.slice(0, 8).map((c, i) => (
+                        {stats.completions.slice(0, 10).map((c, i) => (
                           <div
                             key={c._id || i}
                             className="p-3 rounded-xl bg-slate-50 border flex justify-between text-xs font-extrabold"
                           >
                             <span>
-                              ✓ {c.topicTitle} ({c.subjectTitle})
+                              ✓ {c.topicTitle} ({c.subjectTitle} • লেকচার{" "}
+                              {c.lectureNo || 1})
                             </span>
                             <span className="text-slate-500">{c.dateKey}</span>
                           </div>

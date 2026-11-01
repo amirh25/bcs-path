@@ -1,7 +1,8 @@
 /**
  * ============================================================================
  * FILE: src/app/api/group-study/route.js
- * PURPOSE: All-in-One MongoDB Schemas & REST API for Group Study & Solo Study
+ * PURPOSE: High-Speed MongoDB REST API for Group Study & Solo Study
+ *          Supports User-Specific Independent Timer Pause/Resume & Auto-Cleanup
  * ============================================================================
  */
 
@@ -16,6 +17,9 @@ const ParticipantSchema = new mongoose.Schema(
     avatarUrl: { type: String, default: "" },
     institution: { type: String, default: "" },
     isHost: { type: Boolean, default: false },
+    isPaused: { type: Boolean, default: false },
+    remainingSec: { type: Number, default: 2700 },
+    lastUpdatedAtMs: { type: Number, default: Date.now },
     joinedAt: { type: Date, default: Date.now },
   },
   { _id: false }
@@ -38,16 +42,11 @@ const GroupStudyRoomSchema = new mongoose.Schema(
     isPrivate: { type: Boolean, default: false },
     maxParticipants: { type: Number, default: 10 },
     scheduledDurationSec: { type: Number, default: 2700 },
+    expiresAtMs: { type: Number, default: 0, index: true },
     status: {
       type: String,
       enum: ["waiting", "running", "paused", "ended"],
-      default: "waiting",
-    },
-    timerState: {
-      durationSec: { type: Number, default: 2700 },
-      remainingSecAtPause: { type: Number, default: 2700 },
-      startedAtServerMs: { type: Number, default: 0 },
-      isRunning: { type: Boolean, default: false },
+      default: "running",
     },
     participants: [ParticipantSchema],
   },
@@ -60,7 +59,7 @@ const StudyActivityRecordSchema = new mongoose.Schema(
     courseType: { type: String, default: "bcs", index: true },
     recordType: {
       type: String,
-      enum: ["session", "topic_completion", "mcq_result"],
+      enum: ["session", "topic_completion"],
       required: true,
     },
     mode: { type: String, enum: ["group", "solo"], default: "solo" },
@@ -74,10 +73,6 @@ const StudyActivityRecordSchema = new mongoose.Schema(
     topicTitle: { type: String, default: "" },
     durationSec: { type: Number, default: 0 },
     dateKey: { type: String, index: true },
-    mcqScore: { type: Number, default: 0 },
-    mcqTotal: { type: Number, default: 0 },
-    mcqCorrect: { type: Number, default: 0 },
-    mcqWrong: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -90,19 +85,6 @@ const StudyActivityRecord =
   mongoose.models.StudyActivityRecord ||
   mongoose.model("StudyActivityRecord", StudyActivityRecordSchema);
 
-function computeLiveRemainingSeconds(roomDoc) {
-  if (!roomDoc || !roomDoc.timerState) return 0;
-  const ts = roomDoc.timerState;
-  if (!ts.isRunning || !ts.startedAtServerMs) {
-    return Math.max(0, Number(ts.remainingSecAtPause ?? ts.durationSec ?? 0));
-  }
-  const elapsedSec = Math.floor((Date.now() - ts.startedAtServerMs) / 1000);
-  return Math.max(
-    0,
-    Number(ts.remainingSecAtPause || ts.durationSec) - elapsedSec
-  );
-}
-
 export async function GET(req) {
   try {
     await connectDB();
@@ -110,53 +92,67 @@ export async function GET(req) {
     const courseType = searchParams.get("courseType") || "bcs";
     const studentKey = searchParams.get("studentKey") || "";
     const roomCode = searchParams.get("roomCode") || "";
+    const includeRecords = searchParams.get("includeRecords") !== "0";
 
-    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
-    await GroupStudyRoom.deleteMany({ updatedAt: { $lt: twelveHoursAgo } });
+    const nowMs = Date.now();
 
-    const publicRooms = await GroupStudyRoom.find({
+    // Fast parallel queries
+    const publicRoomsPromise = GroupStudyRoom.find({
       courseType,
       status: { $ne: "ended" },
       isPrivate: false,
+      $or: [
+        { expiresAtMs: { $gt: nowMs } },
+        { expiresAtMs: { $exists: false } },
+        { expiresAtMs: 0 },
+      ],
     })
       .sort({ createdAt: -1 })
       .limit(25)
       .lean();
 
-    let activeRoom = null;
+    let activeRoomPromise = Promise.resolve(null);
     if (roomCode) {
-      activeRoom = await GroupStudyRoom.findOne({
+      activeRoomPromise = GroupStudyRoom.findOne({
         roomCode: roomCode.toUpperCase(),
+        status: { $ne: "ended" },
       }).lean();
     } else if (studentKey) {
-      activeRoom = await GroupStudyRoom.findOne({
+      activeRoomPromise = GroupStudyRoom.findOne({
         status: { $ne: "ended" },
         "participants.studentKey": studentKey,
       }).lean();
     }
 
-    let records = [];
-    if (studentKey) {
-      records = await StudyActivityRecord.find({ studentKey, courseType })
-        .sort({ createdAt: -1 })
-        .limit(200)
-        .lean();
-    }
+    const recordsPromise =
+      studentKey && includeRecords
+        ? StudyActivityRecord.find({ studentKey, courseType })
+            .sort({ createdAt: -1 })
+            .limit(120)
+            .lean()
+        : Promise.resolve(null);
+
+    const [publicRooms, activeRoom, records] = await Promise.all([
+      publicRoomsPromise,
+      activeRoomPromise,
+      recordsPromise,
+    ]);
+
+    // Non-blocking cleanup of expired rooms in background
+    GroupStudyRoom.deleteMany({
+      $or: [
+        { status: "ended" },
+        { expiresAtMs: { $gt: 0, $lt: nowMs - 30 * 60 * 1000 } },
+        { updatedAt: { $lt: new Date(nowMs - 8 * 60 * 60 * 1000) } },
+      ],
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,
-      serverNowMs: Date.now(),
-      publicRooms: publicRooms.map((r) => ({
-        ...r,
-        computedRemainingSec: computeLiveRemainingSeconds(r),
-      })),
-      activeRoom: activeRoom
-        ? {
-            ...activeRoom,
-            computedRemainingSec: computeLiveRemainingSeconds(activeRoom),
-          }
-        : null,
-      records,
+      serverNowMs: nowMs,
+      publicRooms: publicRooms.filter((r) => (r.participants?.length || 0) > 0),
+      activeRoom: activeRoom || null,
+      ...(records !== null ? { records } : {}),
     });
   } catch (error) {
     return NextResponse.json(
@@ -170,7 +166,9 @@ export async function POST(req) {
   try {
     await connectDB();
     const { action, payload } = await req.json();
+    const nowMs = Date.now();
 
+    // 1. CREATE A NEW STUDY ROOM
     if (action === "CREATE_ROOM") {
       const {
         roomName,
@@ -191,36 +189,41 @@ export async function POST(req) {
         scheduledDurationSec = 2700,
       } = payload;
 
+      // Remove host from any previous room automatically
+      if (hostKey) {
+        await GroupStudyRoom.updateMany(
+          { "participants.studentKey": hostKey },
+          { $pull: { participants: { studentKey: hostKey } } }
+        );
+        await GroupStudyRoom.deleteMany({ participants: { $size: 0 } });
+      }
+
       const randomCode =
         "GS" +
         Math.random().toString(36).substring(2, 6).toUpperCase() +
-        String(Date.now()).slice(-2);
+        String(nowMs).slice(-2);
 
       const duration = Math.max(300, Number(scheduledDurationSec) || 2700);
+      const cleanTopic = (topicTitle || "").trim() || subjectTitle || "সাধারণ অধ্যায়";
 
       const newRoom = await GroupStudyRoom.create({
         roomCode: randomCode,
-        roomName: roomName?.trim() || `${subjectTitle} — ${topicTitle}`,
+        roomName: roomName?.trim() || `${subjectTitle} — ${cleanTopic}`,
         courseType,
         subjectId,
         subjectTitle,
         lectureId,
         lectureNo: Number(lectureNo || 1),
         lectureTitle,
-        topicId,
-        topicTitle,
+        topicId: topicId || `custom_${nowMs}`,
+        topicTitle: cleanTopic,
         hostKey,
         hostName: hostName || "শিক্ষার্থী",
         isPrivate: Boolean(isPrivate),
         maxParticipants: Number(maxParticipants || 10),
         scheduledDurationSec: duration,
-        status: "waiting",
-        timerState: {
-          durationSec: duration,
-          remainingSecAtPause: duration,
-          startedAtServerMs: 0,
-          isRunning: false,
-        },
+        expiresAtMs: nowMs + duration * 1000 + 2 * 60 * 60 * 1000,
+        status: "running",
         participants: [
           {
             studentKey: hostKey,
@@ -228,29 +231,48 @@ export async function POST(req) {
             avatarUrl,
             institution,
             isHost: true,
+            isPaused: false,
+            remainingSec: duration,
+            lastUpdatedAtMs: nowMs,
           },
         ],
       });
 
-      const plain = newRoom.toObject();
       return NextResponse.json({
         success: true,
-        serverNowMs: Date.now(),
-        room: {
-          ...plain,
-          computedRemainingSec: computeLiveRemainingSeconds(plain),
-        },
+        serverNowMs: nowMs,
+        room: newRoom.toObject(),
       });
     }
 
+    // 2. JOIN A STUDY ROOM (Auto-leaves previous room if any)
     if (action === "JOIN_ROOM") {
-      const { roomCode, studentKey, name, avatarUrl = "", institution = "" } =
-        payload;
+      const {
+        roomCode,
+        studentKey,
+        name,
+        avatarUrl = "",
+        institution = "",
+        previousRoomCode = "",
+      } = payload;
+
+      const targetCode = (roomCode || "").trim().toUpperCase();
+
+      // Leave previous room if switching rooms
+      if (previousRoomCode && previousRoomCode.toUpperCase() !== targetCode) {
+        await GroupStudyRoom.updateOne(
+          { roomCode: previousRoomCode.toUpperCase() },
+          { $pull: { participants: { studentKey } } }
+        );
+        await GroupStudyRoom.deleteMany({ participants: { $size: 0 } });
+      }
+
       const room = await GroupStudyRoom.findOne({
-        roomCode: (roomCode || "").trim().toUpperCase(),
+        roomCode: targetCode,
+        status: { $ne: "ended" },
       });
 
-      if (!room || room.status === "ended") {
+      if (!room) {
         return NextResponse.json(
           {
             success: false,
@@ -277,6 +299,9 @@ export async function POST(req) {
           avatarUrl,
           institution,
           isHost: room.hostKey === studentKey,
+          isPaused: false,
+          remainingSec: room.scheduledDurationSec || 2700,
+          lastUpdatedAtMs: nowMs,
         });
       } else {
         room.participants[existingIdx].name =
@@ -286,72 +311,39 @@ export async function POST(req) {
       }
 
       await room.save();
-      const plain = room.toObject();
       return NextResponse.json({
         success: true,
-        serverNowMs: Date.now(),
-        room: {
-          ...plain,
-          computedRemainingSec: computeLiveRemainingSeconds(plain),
-        },
+        serverNowMs: nowMs,
+        room: room.toObject(),
       });
     }
 
-    if (action === "CONTROL_ROOM_TIMER") {
-      const { roomCode, command } = payload;
-      const room = await GroupStudyRoom.findOne({
-        roomCode: (roomCode || "").toUpperCase(),
-      });
-      if (!room) {
-        return NextResponse.json(
-          { success: false, error: "রুম পাওয়া যায়নি!" },
-          { status: 404 }
-        );
-      }
+    // 3. USER-SPECIFIC INDEPENDENT PAUSE / RESUME / SYNC
+    if (action === "SYNC_USER_TIMER") {
+      const { roomCode, studentKey, isPaused, remainingSec } = payload;
+      const room = await GroupStudyRoom.findOneAndUpdate(
+        {
+          roomCode: (roomCode || "").toUpperCase(),
+          "participants.studentKey": studentKey,
+        },
+        {
+          $set: {
+            "participants.$.isPaused": Boolean(isPaused),
+            "participants.$.remainingSec": Math.max(0, Number(remainingSec || 0)),
+            "participants.$.lastUpdatedAtMs": nowMs,
+          },
+        },
+        { new: true }
+      ).lean();
 
-      const nowMs = Date.now();
-      const currentRem = computeLiveRemainingSeconds(room);
-
-      if (command === "START" || command === "RESUME") {
-        const baseRem =
-          currentRem > 0 ? currentRem : room.scheduledDurationSec || 2700;
-        room.status = "running";
-        room.timerState = {
-          durationSec: room.scheduledDurationSec || 2700,
-          remainingSecAtPause: baseRem,
-          startedAtServerMs: nowMs,
-          isRunning: true,
-        };
-      } else if (command === "PAUSE") {
-        room.status = "paused";
-        room.timerState = {
-          durationSec: room.scheduledDurationSec || 2700,
-          remainingSecAtPause: currentRem,
-          startedAtServerMs: 0,
-          isRunning: false,
-        };
-      } else if (command === "END") {
-        room.status = "ended";
-        room.timerState = {
-          durationSec: room.scheduledDurationSec || 2700,
-          remainingSecAtPause: 0,
-          startedAtServerMs: 0,
-          isRunning: false,
-        };
-      }
-
-      await room.save();
-      const plain = room.toObject();
       return NextResponse.json({
         success: true,
-        serverNowMs: Date.now(),
-        room: {
-          ...plain,
-          computedRemainingSec: computeLiveRemainingSeconds(plain),
-        },
+        serverNowMs: nowMs,
+        room: room || null,
       });
     }
 
+    // 4. LEAVE ROOM OR END SESSION FOR USER
     if (action === "LEAVE_ROOM") {
       const { roomCode, studentKey } = payload;
       const room = await GroupStudyRoom.findOne({
@@ -378,6 +370,7 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
+    // 5. SAVE STUDY ACTIVITY RECORD
     if (action === "SAVE_ACTIVITY_RECORD") {
       const {
         studentKey,
@@ -394,10 +387,6 @@ export async function POST(req) {
         topicTitle = "",
         durationSec = 0,
         dateKey,
-        mcqScore = 0,
-        mcqTotal = 0,
-        mcqCorrect = 0,
-        mcqWrong = 0,
       } = payload;
 
       const todayKey = dateKey || new Date().toISOString().split("T")[0];
@@ -409,7 +398,7 @@ export async function POST(req) {
           recordType: "topic_completion",
           subjectId,
           lectureNo: Number(lectureNo || 1),
-          topicId,
+          topicTitle: topicTitle.trim(),
         });
 
         if (existing) {
@@ -433,14 +422,10 @@ export async function POST(req) {
         lectureId,
         lectureNo: Number(lectureNo || 1),
         lectureTitle,
-        topicId,
-        topicTitle,
+        topicId: topicId || `top_${nowMs}`,
+        topicTitle: topicTitle.trim(),
         durationSec: Number(durationSec || 0),
         dateKey: todayKey,
-        mcqScore: Number(mcqScore || 0),
-        mcqTotal: Number(mcqTotal || 0),
-        mcqCorrect: Number(mcqCorrect || 0),
-        mcqWrong: Number(mcqWrong || 0),
       });
 
       return NextResponse.json({ success: true, record: created });
