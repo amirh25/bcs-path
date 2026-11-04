@@ -71,6 +71,8 @@ import {
   History,
 } from "lucide-react";
 import { initialSubjects } from "../data/bcsData";
+import { useSession, signOut } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 //  group study er jonno ekhan theke
 import { GroupStudyEntryCard } from "../components/GroupStudyHub";
@@ -1590,6 +1592,8 @@ function WrongAnswersSubjectReviewPanel({
  * ============================================================================
  */
 export default function BCSPathPlatform() {
+  const { data: session, isPending: sessionLoading } = useSession();
+  const authRouter = useRouter();
   const studyResourceRef = useRef(null);
   const vocabReaderRef = useRef(null);
   const qbankReaderRef = useRef(null);
@@ -4252,6 +4256,31 @@ const handleLaunchWeeklyLiveExamRoom = () => {
               {/* Dynamic Notification Bell Dropdown */}
               {renderNotificationBellDropdown(true)}
 
+              {/* Auth: Login or Name + Logout */}
+              {session?.user ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-xs sm:text-sm font-bold">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-fuchsia-400 to-purple-600 flex items-center justify-center text-white font-black text-xs flex-shrink-0">
+                      {session.user.name?.[0]?.toUpperCase() || "U"}
+                    </div>
+                    <span className="hidden sm:inline max-w-[120px] truncate">{session.user.name}</span>
+                  </div>
+                  <button
+                    onClick={() => signOut({ fetchOptions: { onSuccess: () => authRouter.refresh() } })}
+                    className="px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-xs font-bold text-red-300 flex items-center gap-1.5 cursor-pointer transition"
+                  >
+                    <Lock className="w-3.5 h-3.5" /> লগআউট
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => authRouter.push("/auth/signin")}
+                  className="px-4 py-2 rounded-xl bg-fuchsia-500/20 hover:bg-fuchsia-500/30 border border-fuchsia-400/60 text-xs sm:text-sm font-black text-fuchsia-200 flex items-center gap-1.5 cursor-pointer transition"
+                >
+                  <User className="w-4 h-4 text-fuchsia-300" /> লগইন
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   setActivePortal("course_app");
@@ -4637,6 +4666,32 @@ const handleLaunchWeeklyLiveExamRoom = () => {
 
             <div className="flex items-center gap-3">
               {renderNotificationBellDropdown(true)}
+
+              {/* Auth: Login or Name + Logout */}
+              {session?.user ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-xs sm:text-sm font-bold">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-fuchsia-400 to-purple-600 flex items-center justify-center text-white font-black text-xs flex-shrink-0">
+                      {session.user.name?.[0]?.toUpperCase() || "U"}
+                    </div>
+                    <span className="hidden sm:inline max-w-[120px] truncate">{session.user.name}</span>
+                  </div>
+                  <button
+                    onClick={() => signOut({ fetchOptions: { onSuccess: () => authRouter.refresh() } })}
+                    className="px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-400/50 text-xs font-bold text-red-300 flex items-center gap-1.5 cursor-pointer transition"
+                  >
+                    <Lock className="w-3.5 h-3.5" /> লগআউট
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => authRouter.push("/auth/signin")}
+                  className="px-4 py-2 rounded-xl bg-fuchsia-500/20 hover:bg-fuchsia-500/30 border border-fuchsia-400/60 text-xs sm:text-sm font-black text-fuchsia-200 flex items-center gap-1.5 cursor-pointer transition"
+                >
+                  <User className="w-4 h-4 text-fuchsia-300" /> লগইন
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   setActivePortal("course_app");
@@ -4866,6 +4921,31 @@ const handleLaunchWeeklyLiveExamRoom = () => {
           <div className="flex items-center gap-2.5">
             {/* Dynamic Notification Bell Dropdown */}
             {renderNotificationBellDropdown(false)}
+
+            {/* Auth: Login or Name + Logout */}
+            {session?.user ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 text-xs sm:text-sm font-bold">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-fuchsia-500 to-purple-700 flex items-center justify-center text-white font-black text-xs flex-shrink-0">
+                    {session.user.name?.[0]?.toUpperCase() || "U"}
+                  </div>
+                  <span className="hidden sm:inline max-w-[120px] truncate">{session.user.name}</span>
+                </div>
+                <button
+                  onClick={() => signOut({ fetchOptions: { onSuccess: () => authRouter.refresh() } })}
+                  className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-bold text-red-600 flex items-center gap-1.5 cursor-pointer transition"
+                >
+                  <Lock className="w-3.5 h-3.5" /> লগআউট
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => authRouter.push("/auth/signin")}
+                className="px-4 py-2 rounded-xl bg-[#3b0764] hover:bg-[#4c1d95] text-white text-xs sm:text-sm font-black flex items-center gap-1.5 cursor-pointer transition"
+              >
+                <User className="w-4 h-4" /> লগইন
+              </button>
+            )}
 
             <button
               onClick={() => setShowJobNewsModal(true)}

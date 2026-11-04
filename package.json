@@ -9,6 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@gravity-ui/icons": "^2.23.1",
+    "@heroui/react": "^3.2.7",
+    "@tailwindcss/vite": "^4.3.4",
+    "better-auth": "^1.7.16",
     "lucide-react": "^1.60.0",
     "mongoose": "^9.11.2",
     "next": "16.4.2",
@@ -20,6 +24,6 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4.3.4"
   }
 }

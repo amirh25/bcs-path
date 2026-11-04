@@ -14,6 +14,9 @@ const nextConfig = {
         as: "*.css",
       },
     },
+     plugins: {
+    "@tailwindcss/postcss": {},
+  },
   },
 };
 
